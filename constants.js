@@ -74,6 +74,22 @@ const DEAL_DOCS = [
   {id:"onboarding",name:"Onboarding Checklist",stages:[4],category:"operations"}
 ];
 const SK = {leads:"pcrm_v9_leads",icp:"pcrm_v9_icp",weights:"pcrm_v9_weights",statsHistory:"pcrm_v9_stats",reminders:"pcrm_v9_reminders",apiKey:"pcrm_v9_apikey",strategy:"pcrm_v9_strategy",lastBackup:"pcrm_v9_lastbackup",scheduledEmails:"pcrm_v9_scheduled",weeklyGoal:"pcrm_v9_wgoal",emailTemplates:"pcrm_v9_templates",internalTeam:"pcrm_v9_team",qna:"pcrm_v9_qna",compIntel:"pcrm_v9_compintel"};
+const NEXT_STEP_TYPES=[
+  {id:"email",label:"Email",icon:"📧"},
+  {id:"call",label:"Call",icon:"📞"},
+  {id:"meeting",label:"Meeting",icon:"📅"},
+  {id:"proposal",label:"Proposal",icon:"📋"},
+  {id:"followup",label:"Follow-up",icon:"\u21a9"},
+  {id:"other",label:"Other",icon:"\u26a1"},
+];
+const STAGE_NEXT_STEPS={
+  "-1":["Research the company and find the right contact","Send a cold intro email","Connect on LinkedIn"],
+  "0":["Follow up on the intro email","Schedule a discovery call","Share a relevant case study"],
+  "1":["Send a product demo or overview","Book a discovery call","Send pricing information"],
+  "2":["Send a formal proposal","Schedule a deep-dive call","Introduce the technical team"],
+  "3":["Follow up on contract review","Confirm legal sign-off","Agree on implementation timeline"],
+  "4":["Schedule kick-off meeting","Complete onboarding checklist","Follow up on renewal date"],
+};
 const COMP_STATUSES=[{id:"evaluating",label:"Evaluating",clr:"#FECA57"},{id:"pilot",label:"Pilot",clr:"#48DBFB"},{id:"using",label:"Using",clr:"#FF9F43"},{id:"integrated",label:"Integrated",clr:"#FF6B6B"},{id:"exclusive",label:"Exclusive",clr:"#FF6B6B"},{id:"in_procurement",label:"In Procurement",clr:"#A29BFE"},{id:"parallel",label:"Running Parallel",clr:"#FFA502"},{id:"replacing",label:"Replacing Us",clr:"#FF4757"},{id:"replaced",label:"Replaced",clr:"#888888"}];
 const DAYS_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const MONTHS_NLP = ["january","february","march","april","may","june","july","august","september","october","november","december"];
@@ -207,6 +223,9 @@ function activityDots(lead){
 }
 function isOptedOut(contact){return !!(contact&&contact.optedOut);}
 function getOptOutReason(contact){return contact&&contact.optOutReason||"";}
+function parseNextStep(ns){if(!ns)return null;if(typeof ns==="string")return{action:ns,type:"other",dueDate:null,createdAt:null};return ns;}
+function nextStepUrgencyClr(dueDate){if(!dueDate)return C.muted;var days=Math.ceil((new Date(dueDate)-new Date())/86400000);if(days<0)return C.danger;if(days===0)return"#FECA57";if(days<=2)return"#FF9F43";return C.dim;}
+function fmtNextStepDate(iso){if(!iso)return"";try{return new Date(iso).toLocaleDateString("en-US",{month:"short",day:"numeric"});}catch(_){return"";}}
 
 function categorize(text){
   const lo=text.toLowerCase(),w=text.split(/\s+/).length;
