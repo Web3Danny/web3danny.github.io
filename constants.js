@@ -73,7 +73,8 @@ const DEAL_DOCS = [
   {id:"contract",name:"Contract / MSA / SLA",stages:[4],category:"legal"},
   {id:"onboarding",name:"Onboarding Checklist",stages:[4],category:"operations"}
 ];
-const SK = {leads:"pcrm_v9_leads",icp:"pcrm_v9_icp",weights:"pcrm_v9_weights",statsHistory:"pcrm_v9_stats",reminders:"pcrm_v9_reminders",apiKey:"pcrm_v9_apikey",strategy:"pcrm_v9_strategy",lastBackup:"pcrm_v9_lastbackup",scheduledEmails:"pcrm_v9_scheduled",weeklyGoal:"pcrm_v9_wgoal",emailTemplates:"pcrm_v9_templates",internalTeam:"pcrm_v9_team",qna:"pcrm_v9_qna"};
+const SK = {leads:"pcrm_v9_leads",icp:"pcrm_v9_icp",weights:"pcrm_v9_weights",statsHistory:"pcrm_v9_stats",reminders:"pcrm_v9_reminders",apiKey:"pcrm_v9_apikey",strategy:"pcrm_v9_strategy",lastBackup:"pcrm_v9_lastbackup",scheduledEmails:"pcrm_v9_scheduled",weeklyGoal:"pcrm_v9_wgoal",emailTemplates:"pcrm_v9_templates",internalTeam:"pcrm_v9_team",qna:"pcrm_v9_qna",compIntel:"pcrm_v9_compintel"};
+const COMP_STATUSES=[{id:"evaluating",label:"Evaluating",clr:"#FECA57"},{id:"pilot",label:"Pilot",clr:"#48DBFB"},{id:"using",label:"Using",clr:"#FF9F43"},{id:"integrated",label:"Integrated",clr:"#FF6B6B"},{id:"exclusive",label:"Exclusive",clr:"#FF6B6B"},{id:"in_procurement",label:"In Procurement",clr:"#A29BFE"},{id:"parallel",label:"Running Parallel",clr:"#FFA502"},{id:"replacing",label:"Replacing Us",clr:"#FF4757"},{id:"replaced",label:"Replaced",clr:"#888888"}];
 const DAYS_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const MONTHS_NLP = ["january","february","march","april","may","june","july","august","september","october","november","december"];
 const DAY_NAMES  = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
