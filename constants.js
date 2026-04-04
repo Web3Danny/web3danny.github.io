@@ -1,20 +1,22 @@
 /* \u2500\u2500 DESIGN TOKENS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 const C = {
-  acc:"#0BE881", info:"#0BE881", warn:"#FECA57", danger:"#FF6B6B",
-  bg:"#0F0F0F", surf:"#1C1C1C", surf2:"#242424", surf3:"#2C2C2C",
-  line:"#4A4A4A", line2:"#383838",
-  text:"#F0F0F0", muted:"#888888", dim:"#BBBBBB",
-  shadow:"0 2px 12px rgba(0,0,0,0.5)",
-  shadowLg:"0 8px 32px rgba(0,0,0,0.7)",
-  radius:"8px", radiusSm:"5px", radiusLg:"12px",
+  acc:"#0BE881", info:"#0BE881", warn:"#FFE066", danger:"#FF6B6B",
+  bg:"#080604", surf:"#201C17", surf2:"#2C2620", surf3:"#38302A",
+  line:"#5C5044", line2:"#4A4238",
+  text:"#F5F0E8", muted:"#7A7268", dim:"#B8AFA0",
+  shadow:"0 4px 16px rgba(0,0,0,0.6)",
+  shadowLg:"0 8px 32px rgba(0,0,0,0.8)",
+  radius:"8px", radiusSm:"5px", radiusLg:"18px", radiusCard:"18px",
 };
+const SP = {xs:"4px", sm:"8px", md:"16px", lg:"24px", xl:"32px"};
+const PIPE_NONE_META = {label:"Unstarted", code:"UNS", clr:"#7A7268"};
 
 /* \u2500\u2500 CONSTANTS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 const PIPE = [
-  {id:0,code:"SIGNAL",    label:"Signal Sent",     sub:"First outreach made",          clr:"#1B5E3B"},
-  {id:1,code:"ECHO",      label:"Echo Received",   sub:"Response or feedback obtained", clr:"#2E8B57"},
-  {id:2,code:"LOCKED",    label:"Interest Locked", sub:"Genuine interest confirmed",    clr:"#3CB371"},
-  {id:3,code:"DEEP DIVE", label:"Deep Dive",       sub:"In evaluation / discovery",     clr:"#50E88A"},
+  {id:0,code:"SIGNAL",    label:"Signal Sent",     sub:"First outreach made",          clr:"#4B9EFF"},
+  {id:1,code:"ECHO",      label:"Echo Received",   sub:"Response or feedback obtained", clr:"#B8AFA0"},
+  {id:2,code:"LOCKED",    label:"Interest Locked", sub:"Genuine interest confirmed",    clr:"#FFE066"},
+  {id:3,code:"DEEP DIVE", label:"Deep Dive",       sub:"In evaluation / discovery",     clr:"#FF9F43"},
   {id:4,code:"ON THE WIRE",label:"On the Wire",    sub:"Signing process initiated",     clr:"#0BE881"},
 ];
 const PIPE_NONE = -1;
