@@ -13,9 +13,9 @@ const PIPE_NONE_META = {label:"Unstarted", code:"UNSTARTED", clr:"#7A7268"};
 
 /* \u2500\u2500 CONSTANTS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 const PIPE = [
-  {id:0,code:"SIGNAL",    label:"Signal Sent",     sub:"First outreach made",          clr:"#4B9EFF"},
-  {id:1,code:"ECHO",      label:"Echo Received",   sub:"Response or feedback obtained", clr:"#B8AFA0"},
-  {id:2,code:"LOCKED",    label:"Interest Locked", sub:"Genuine interest confirmed",    clr:"#FFE066"},
+  {id:0,code:"SIGNAL",    label:"Signal",  sub:"First outreach made",          clr:"#4B9EFF"},
+  {id:1,code:"ECHO",      label:"Echo",    sub:"Response or feedback obtained", clr:"#B8AFA0"},
+  {id:2,code:"LOCKED",    label:"Locked",  sub:"Genuine interest confirmed",    clr:"#FFE066"},
   {id:3,code:"DEEP DIVE", label:"Deep Dive",       sub:"In evaluation / discovery",     clr:"#FF9F43"},
   {id:4,code:"ON THE WIRE",label:"On the Wire",    sub:"Signing process initiated",     clr:"#0BE881"},
 ];
@@ -299,9 +299,13 @@ function computeUrgency(leads){
     if(isBlocked(l))signals.push({type:"blocked",weight:20});
     var stg=pipeStage(l);if(stg>=3&&!l.waitingUntil&&!l._completedAt)signals.push({type:"late_stage",weight:18});
     var topWeight=signals.reduce(function(a,s){return Math.max(a,s.weight);},0);
-    return{leadId:l.id,weight:topWeight,signals:signals,stuckDays:ds.stuckDays,dealValue:l.dealValue||0};
+    return{leadId:l.id,lead:l,weight:topWeight,signals:signals,stuckDays:ds.stuckDays,dealValue:l.dealValue||0};
   });
+  var todayStr=new Date().toDateString();
   scored.sort(function(a,b){
+    var aPromoted=(a.lead&&a.lead._promotedAt&&new Date(a.lead._promotedAt).toDateString()===todayStr)?1:0;
+    var bPromoted=(b.lead&&b.lead._promotedAt&&new Date(b.lead._promotedAt).toDateString()===todayStr)?1:0;
+    if(bPromoted!==aPromoted)return bPromoted-aPromoted;
     if(b.weight!==a.weight)return b.weight-a.weight;
     if(b.stuckDays!==a.stuckDays)return b.stuckDays-a.stuckDays;
     return b.dealValue-a.dealValue;
