@@ -346,23 +346,23 @@ function computeStageSuggestion(lead){
     var hasSpokeInterested=logs.some(function(e){
       return e.category==="call"&&(e.content||"").indexOf("Spoke - interested")>=0;
     });
-    if(hasReply||hasSpokeInterested)return{suggestedStage:1,reason:hasSpokeInterested?"Call: spoke, interested":"Positive reply received",confidence:"high",autoApply:false};
+    if(hasReply||hasSpokeInterested)return{suggestedStage:1,reason:hasSpokeInterested?"Call: spoke, interested":"Reply received",confidence:"high",autoApply:false};
     return null;
   }
   if(stage===1){
     var hasMeeting=logs.some(function(e){return e.category==="meeting_notes";});
     var hasNda=docs.some(function(d){return d.id==="nda"&&SENT_STATUSES.indexOf(d.status)>=0;});
-    if(hasMeeting||hasNda)return{suggestedStage:2,reason:hasMeeting?"Meeting notes logged":("NDA "+docs.find(function(d){return d.id==="nda";}).status),confidence:"high",autoApply:false};
+    if(hasMeeting||hasNda)return{suggestedStage:2,reason:hasMeeting?"Meeting held":"NDA "+(docs.find(function(d){return d.id==="nda";})||{}).status,confidence:"high",autoApply:false};
     return null;
   }
   if(stage===2){
     var hasProposal=docs.some(function(d){return(d.id==="proposal"||d.id==="roi")&&SENT_STATUSES.indexOf(d.status)>=0;});
-    if(hasProposal)return{suggestedStage:3,reason:"Proposal or pricing shared",confidence:"high",autoApply:false};
+    if(hasProposal)return{suggestedStage:3,reason:"Proposal or pricing sent",confidence:"high",autoApply:false};
     return null;
   }
   if(stage===3){
     var hasContract=docs.some(function(d){return d.id==="contract"&&SENT_STATUSES.indexOf(d.status)>=0;});
-    if(hasContract)return{suggestedStage:4,reason:"Contract on file",confidence:"mid",autoApply:false};
+    if(hasContract)return{suggestedStage:4,reason:"Contract on file",confidence:"high",autoApply:false};
     return null;
   }
   return null;
