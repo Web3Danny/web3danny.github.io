@@ -13,7 +13,7 @@ a{color:#60B4FF;text-decoration:none}
 a:hover{text-decoration:underline}
 .panel-slide{animation:slideIn 0.2s ease-out}
 @keyframes slideIn{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
-button{transition:opacity 0.12s,background 0.12s}
+button{transition:opacity 0.12s}
 @media(max-width:767px){
   html,body,#root{overflow-x:hidden;max-width:100vw}
   #root{zoom:1 !important}
