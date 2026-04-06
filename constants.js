@@ -75,6 +75,8 @@ const DOC_STATUS_META = {
 };
 const DEAL_DOCS = [
   {id:"nda",name:"NDA",stages:[0,1],category:"legal"},
+  {id:"one_pager",name:"One-Pager",stages:[0,1],category:"commercial"},
+  {id:"exec_summary",name:"Executive Summary",stages:[2,3],category:"commercial"},
   {id:"proposal",name:"Proposal / Pricing",stages:[2],category:"commercial"},
   {id:"roi",name:"ROI Calculation",stages:[2],category:"commercial"},
   {id:"tech_spec",name:"Technical Integration Spec",stages:[3],category:"technical"},
