@@ -105,7 +105,7 @@ async function generateAiSuggestion(deal,icp,apiKey){
     var resp=await fetch("https://api.anthropic.com/v1/messages",{
       method:"POST",
       headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:400,messages:[{role:"user",content:prompt}]})
+      body:JSON.stringify({model:CLAUDE_HAIKU,max_tokens:400,messages:[{role:"user",content:prompt}]})
     });
     var data=await resp.json();
     var text=(data.content&&data.content[0]&&data.content[0].text)||"{}";
@@ -136,7 +136,7 @@ async function parseCapture(text,leads,nowDealId,apiKey){
     var resp=await fetch("https://api.anthropic.com/v1/messages",{
       method:"POST",
       headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:200,messages:[{role:"user",content:prompt}]})
+      body:JSON.stringify({model:CLAUDE_HAIKU,max_tokens:200,messages:[{role:"user",content:prompt}]})
     });
     var data=await resp.json();
     var text2=(data.content&&data.content[0]&&data.content[0].text)||"{}";
@@ -191,7 +191,7 @@ async function generateDealDiagnosis(lead,sequences,icp,apiKey){
     var resp=await fetch("https://api.anthropic.com/v1/messages",{
       method:"POST",
       headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:250,messages:[{role:"user",content:prompt}]})
+      body:JSON.stringify({model:CLAUDE_HAIKU,max_tokens:250,messages:[{role:"user",content:prompt}]})
     });
     var data=await resp.json();
     var text=(data.content&&data.content[0]&&data.content[0].text)||"{}";

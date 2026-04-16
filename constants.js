@@ -1,3 +1,15 @@
+/* ── CLAUDE MODEL IDs ──────────────────────────────────────────────────────── */
+const CLAUDE_HAIKU = "claude-haiku-4-5-20251001";
+const CLAUDE_SONNET = "claude-sonnet-4-20250514";
+
+function checkStorageSize(){
+  var leadsVal=localStorage.getItem("pcrm_v9_leads")||"";
+  var seqVal=localStorage.getItem("pcrm_v9_sequences")||"";
+  var total=leadsVal.length+seqVal.length;
+  if(total>4500000){alert("PCRM: storage is approaching the limit. Please export your data.");}
+  else if(total>3000000){console.warn("PCRM storage above 3 MB — leads:"+leadsVal.length+" chars, sequences:"+seqVal.length+" chars");}
+}
+
 /* \u2500\u2500 DESIGN TOKENS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 const C = {
   acc:"#0BE881", info:"#0BE881", warn:"#FFE066", danger:"#FF6B6B",
@@ -13,12 +25,53 @@ const PIPE_NONE_META = {label:"Unstarted", code:"UNSTARTED", clr:"#7A7268"};
 
 /* \u2500\u2500 CONSTANTS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 const PIPE = [
-  {id:0,code:"SIGNAL",    label:"Signal",  sub:"First outreach made",          clr:"#4B9EFF"},
-  {id:1,code:"ECHO",      label:"Echo",    sub:"Response or feedback obtained", clr:"#B8AFA0"},
-  {id:2,code:"LOCKED",    label:"Locked",  sub:"Genuine interest confirmed",    clr:"#FFE066"},
-  {id:3,code:"DEEP DIVE", label:"Deep Dive",       sub:"In evaluation / discovery",     clr:"#FF9F43"},
-  {id:4,code:"ON THE WIRE",label:"On the Wire",    sub:"Signing process initiated",     clr:"#0BE881"},
+  {id:0,code:"SIG",        label:"SIGNAL",      sub:"Weak or unconfirmed interest",  clr:"#48DBFB"},
+  {id:1,code:"ECHO",       label:"Echo",        sub:"Response or feedback obtained", clr:"#B8AFA0"},
+  {id:2,code:"LOCKED",     label:"Locked",      sub:"Genuine interest confirmed",    clr:"#FFE066"},
+  {id:3,code:"DEEP_DIVE",  label:"Deep Dive",   sub:"In evaluation / discovery",     clr:"#FF9F43"},
+  {id:4,code:"ON_THE_WIRE",label:"ON THE WIRE", sub:"Signing process initiated",     clr:"#0BE881"},
 ];
+const STAGE_ALIASES = {0:"Qualified",1:"Engaged",2:"Committed",3:"Proposal",4:"Verbal / Closing"};
+/* Milestone labels for execution graph */
+const GRAPH_MILESTONES=[
+  {id:"commitment_secured",label:"Commitment Secured",stage:2,defaultBranches:["Prepare NDA","Align stakeholders","Confirm next step"]},
+  {id:"solution_validated", label:"Solution Validated", stage:3,defaultBranches:["Create one-pager","Get ROI data","Tailor solution","Internal alignment"]},
+  {id:"contract_signed",    label:"Contract Signed",    stage:4,defaultBranches:["Final negotiation","Legal review","Signature process"]},
+];
+/* Pipeline migration: old 5-stage → new 4-stage */
+function migrateLeadPipeline(lead){
+  var op=lead.pipeline;
+  if(typeof op!=="number")return lead;
+  var np=op<0?-1:op<=1?0:op-1;
+  if(np===op)return lead;
+  var nh=(lead.pipelineHistory||[]).map(function(h){var ns=h.stage<0?-1:h.stage<=1?0:h.stage-1;return Object.assign({},h,{stage:ns});});
+  return Object.assign({},lead,{pipeline:np,pipelineHistory:nh});
+}
+function migrateLeadPipelineV5(lead){
+  var op=lead.pipeline;
+  if(typeof op!=="number"||op<0)return lead;
+  var np=op+1;
+  var nh=(lead.pipelineHistory||[]).map(function(h){return Object.assign({},h,{stage:h.stage<0?h.stage:h.stage+1});});
+  return Object.assign({},lead,{pipeline:np,pipelineHistory:nh});
+}
+function migrateLeadPipelineV6(lead){
+  var op=lead.pipeline;
+  if(typeof op!=="number"||op<0)return lead;
+  var np=op+1;
+  var nh=(lead.pipelineHistory||[]).map(function(h){return Object.assign({},h,{stage:h.stage<0?h.stage:h.stage+1});});
+  return Object.assign({},lead,{pipeline:np,pipelineHistory:nh});
+}
+function migrateLeadPipelineV7(lead){
+  var op=lead.pipeline;
+  if(typeof op!=="number"||op<=0)return lead;
+  var np=op-1;
+  var nh=(lead.pipelineHistory||[]).map(function(h){return Object.assign({},h,{stage:h.stage<=0?h.stage:h.stage-1});});
+  return Object.assign({},lead,{pipeline:np,pipelineHistory:nh});
+}
+function migrateLeadPipelineV8(lead){
+  var contacts=(lead.contacts||[]).map(function(c){return c.role?c:Object.assign({},c,{role:"unknown"});});
+  return Object.assign({enrichment:null,signals:[],outreachOutcome:null,callOutcomes:[],snoozedUntil:null,snoozeReason:null},lead,{contacts:contacts});
+}
 const PIPE_NONE = -1;
 const CRITERIA = [
   {id:"decisionMaker",label:"Decision-Maker Access",short:"DM ACCESS",clr:"#FFE066"},
@@ -74,18 +127,18 @@ const DOC_STATUS_META = {
   approved:{label:"Approved",clr:"#0BE881",icon:"●"}
 };
 const DEAL_DOCS = [
-  {id:"nda",name:"NDA",stages:[0,1],category:"legal"},
-  {id:"one_pager",name:"One-Pager",stages:[0,1],category:"commercial"},
+  {id:"nda",name:"NDA",stages:[1,2],category:"legal"},
+  {id:"one_pager",name:"One-Pager",stages:[1,2],category:"commercial"},
   {id:"exec_summary",name:"Executive Summary",stages:[2,3],category:"commercial"},
-  {id:"proposal",name:"Proposal / Pricing",stages:[2],category:"commercial"},
-  {id:"roi",name:"ROI Calculation",stages:[2],category:"commercial"},
+  {id:"proposal",name:"Proposal / Pricing",stages:[3],category:"commercial"},
+  {id:"roi",name:"ROI Calculation",stages:[3],category:"commercial"},
   {id:"tech_spec",name:"Technical Integration Spec",stages:[3],category:"technical"},
   {id:"security_q",name:"Security Questionnaire",stages:[3],category:"compliance"},
   {id:"compliance_kyb",name:"Compliance / KYB Docs",stages:[3],category:"compliance"},
   {id:"contract",name:"Contract / MSA / SLA",stages:[4],category:"legal"},
-  {id:"onboarding",name:"Onboarding Checklist",stages:[4],category:"operations"}
+  {id:"onboarding",name:"Onboarding Checklist",stages:[3],category:"operations"}
 ];
-const SK = {leads:"pcrm_v9_leads",icp:"pcrm_v9_icp",weights:"pcrm_v9_weights",statsHistory:"pcrm_v9_stats",reminders:"pcrm_v9_reminders",apiKey:"pcrm_v9_apikey",strategy:"pcrm_v9_strategy",lastBackup:"pcrm_v9_lastbackup",scheduledEmails:"pcrm_v9_scheduled",weeklyGoal:"pcrm_v9_wgoal",emailTemplates:"pcrm_v9_templates",internalTeam:"pcrm_v9_team",qna:"pcrm_v9_qna",compIntel:"pcrm_v9_compintel"};
+const SK = {leads:"pcrm_v9_leads",icp:"pcrm_v9_icp",weights:"pcrm_v9_weights",statsHistory:"pcrm_v9_stats",reminders:"pcrm_v9_reminders",apiKey:"pcrm_v9_apikey",strategy:"pcrm_v9_strategy",lastBackup:"pcrm_v9_lastbackup",scheduledEmails:"pcrm_v9_scheduled",weeklyGoal:"pcrm_v9_wgoal",emailTemplates:"pcrm_v9_templates",internalTeam:"pcrm_v9_team",qna:"pcrm_v9_qna",compIntel:"pcrm_v9_compintel",dailyReports:"pcrm_v9_daily_reports",weeklyReports:"pcrm_v9_weekly_reports",activePrompt:"pcrm_v9_active_prompt"};
 const STAGE_LIMITS=[3,4,5,7,5];
 const STUCK_REASONS=["No reply","Follow-up not sent","Weak contact","Wrong persona","No clear pain","Low priority for prospect","Waiting on prospect","Internal blocker","Unclear value proposition"];
 function getStuckStatus(lead){
@@ -115,11 +168,11 @@ const NEXT_STEP_TYPES=[
 ];
 const STAGE_NEXT_STEPS={
   "-1":["Research the company and find the right contact","Send a cold intro email","Connect on LinkedIn"],
-  "0":["Follow up on the intro email","Schedule a discovery call","Share a relevant case study"],
-  "1":["Send a product demo or overview","Book a discovery call","Send pricing information"],
-  "2":["Send a formal proposal","Schedule a deep-dive call","Introduce the technical team"],
-  "3":["Follow up on contract review","Confirm legal sign-off","Agree on implementation timeline"],
-  "4":["Schedule kick-off meeting","Complete onboarding checklist","Follow up on renewal date"],
+  "0":["Verify the signal is genuine","Find the right decision-maker","Send a first personalised reach-out"],
+  "1":["Book a discovery call","Send a product overview","Confirm stakeholder and pain point"],
+  "2":["Prepare NDA","Align all stakeholders","Confirm commitment to next step"],
+  "3":["Send formal proposal","Share ROI calculation","Schedule deep-dive session"],
+  "4":["Follow up on contract review","Confirm legal sign-off","Agree on implementation timeline"],
 };
 const COMP_STATUSES=[{id:"evaluating",label:"Evaluating",clr:"#FECA57"},{id:"pilot",label:"Pilot",clr:"#48DBFB"},{id:"using",label:"Using",clr:"#FF9F43"},{id:"integrated",label:"Integrated",clr:"#FF6B6B"},{id:"exclusive",label:"Exclusive",clr:"#FF6B6B"},{id:"in_procurement",label:"In Procurement",clr:"#A29BFE"},{id:"parallel",label:"Running Parallel",clr:"#FFA502"},{id:"replacing",label:"Replacing Us",clr:"#FF4757"},{id:"replaced",label:"Replaced",clr:"#888888"}];
 const DAYS_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -222,13 +275,14 @@ function fmtDateShort(iso){
   catch(_){return iso;}
 }
 function uid(p){return p+"_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);}
-function makeContact(o){return Object.assign({id:uid("c"),name:"",title:"",email:"",phone:"",linkedin:"",notes:"",lastContacted:""},o||{});}
+function makeContact(o){return Object.assign({id:uid("c"),name:"",title:"",email:"",phone:"",linkedin:"",notes:"",lastContacted:"",role:"unknown"},o||{});}
 function makeLead(data,weights){
   return {id:uid("lead"),aiPitch:"",createdAt:new Date().toISOString(),
     pipeline:PIPE_NONE,pipelineHistory:[],contacts:[],blocker:null,blockerHistory:[],
     logEntries:[],summary:{currentStatus:"",latestUpdate:"",goal:"",generatedAt:null},
     dealValue:0,closedAt:null,dealRoom:[],
     accountData:{renewalDate:"",healthScore:"happy",upsellStatus:"none",upsellNotes:"",qbrDate:"",supportIssues:"",accountNotes:""},
+    enrichment:null,signals:[],outreachOutcome:null,callOutcomes:[],snoozedUntil:null,snoozeReason:null,
     ...data,totalScore:calcScore(data.scores||{},weights)};
 }
 function computeSnapshot(leads){
@@ -331,7 +385,7 @@ function computeCompositeScore(lead,sequences){
   var score=0;
   var decayScore=Math.min(50,stuckDays*2);
   score+=decayScore;
-  var stageBonus=[0,8,16,28,40,0];
+  var stageBonus=[0,8,16,28,40];
   score+=(stage>=0&&stage<=4)?stageBonus[stage]:0;
   var dv=lead.dealValue||0;
   if(dv>=1000)score+=Math.min(20,Math.round(Math.log10(dv/1000)*10));
@@ -415,11 +469,41 @@ function computeUrgency(leads,sequences){
     return b.compositeScore-a.compositeScore;
   });
   var topSlice=scored.slice(0,8),restSlice=scored.slice(8);
+  /* Collect execution tasks (actionItems with milestoneId) from all active leads */
+  var execTasks=[];
+  var todayEnd=new Date();todayEnd.setHours(23,59,59,999);
+  (leads||[]).forEach(function(l){
+    if(pipeStage(l)===4)return;
+    var curStage=pipeStage(l);
+    (l.actionItems||[]).forEach(function(t){
+      if(t.status==="done"||t.status==="active_done")return;
+      if(!t.milestoneId)return;
+      var ms=GRAPH_MILESTONES.find(function(m){return m.id===t.milestoneId;})||null;
+      var isCurrentMilestone=ms?ms.stage===curStage+1:false;
+      var dueToday=!!(t.dueDate&&new Date(t.dueDate)<=todayEnd);
+      var isBlocking=false;
+      if(isCurrentMilestone&&t.branchId){
+        var branchPending=(l.actionItems||[]).filter(function(x){return x.branchId===t.branchId&&x.milestoneId===t.milestoneId&&x.status!=="done"&&x.status!=="active_done";});
+        isBlocking=branchPending.length===1;
+      }
+      var priority=(dueToday?30:0)+(isCurrentMilestone?40:0)+(isBlocking?50:0);
+      var branchLabel="";
+      if(t.branchId&&l.executionGraph){
+        (l.executionGraph.milestones||[]).forEach(function(ms2){
+          var br=(ms2.branches||[]).find(function(b){return b.id===t.branchId;});
+          if(br)branchLabel=br.label;
+        });
+      }
+      execTasks.push({taskId:t.id,task:t,lead:l,milestoneLabel:ms?ms.label:"",branchLabel:branchLabel,priority:priority,dueToday:dueToday,isCurrentMilestone:isCurrentMilestone,isBlocking:isBlocking});
+    });
+  });
+  execTasks.sort(function(a,b){return b.priority-a.priority;});
   return{
     now:topSlice.length>0?topSlice[0].leadId:null,
     queue:topSlice.slice(1).map(function(s){return s.leadId;}),
     notToday:restSlice.map(function(s){return s.leadId;}),
-    scored:scored
+    scored:scored,
+    execTasks:execTasks
   };
 }
 function computeDelay(deal){
@@ -446,31 +530,29 @@ function computeStageSuggestion(lead){
     return null;
   }
   if(stage===0){
-    var hasReply=logs.some(function(e){
-      if(e.category!=="email")return false;
-      var c=(e.content||"").toLowerCase();
-      return c.indexOf("replied")>=0||c.indexOf("re:")>=0||c.indexOf("got back")>=0||c.indexOf("responded")>=0||c.indexOf("response")>=0;
-    });
-    var hasSpokeInterested=logs.some(function(e){
-      return e.category==="call"&&(e.content||"").indexOf("Spoke - interested")>=0;
-    });
-    if(hasReply||hasSpokeInterested)return{suggestedStage:1,reason:hasSpokeInterested?"Call: spoke, interested":"Reply received",confidence:"high",autoApply:false};
+    var hasSigReply=logs.some(function(e){if(e.category!=="email")return false;var lc=(e.content||"").toLowerCase();return lc.indexOf("replied")>=0||lc.indexOf("re:")>=0||lc.indexOf("responded")>=0;});
+    var hasSigCall=logs.some(function(e){return e.category==="call";});
+    if(hasSigReply||hasSigCall)return{suggestedStage:1,reason:hasSigCall?"Call logged — move to Echo":"Reply received — move to Echo",confidence:"medium",autoApply:false};
     return null;
   }
   if(stage===1){
     var hasMeeting=logs.some(function(e){return e.category==="meeting_notes";});
     var hasNda=docs.some(function(d){return d.id==="nda"&&SENT_STATUSES.indexOf(d.status)>=0;});
-    if(hasMeeting||hasNda)return{suggestedStage:2,reason:hasMeeting?"Meeting held":"NDA "+(docs.find(function(d){return d.id==="nda";})||{}).status,confidence:"high",autoApply:false};
+    var hasReply=logs.some(function(e){if(e.category!=="email")return false;var c=(e.content||"").toLowerCase();return c.indexOf("replied")>=0||c.indexOf("re:")>=0||c.indexOf("responded")>=0||c.indexOf("response")>=0;});
+    var hasPositiveCall=logs.some(function(e){return e.category==="call"&&(e.content||"").toLowerCase().indexOf("interested")>=0;});
+    if(hasMeeting||hasNda)return{suggestedStage:2,reason:hasMeeting?"Meeting held — move to Locked":"NDA in progress — move to Locked",confidence:"high",autoApply:false};
+    if(hasReply||hasPositiveCall)return{suggestedStage:2,reason:hasPositiveCall?"Positive call — move to Locked":"Reply received — qualify for Locked",confidence:"medium",autoApply:false};
     return null;
   }
   if(stage===2){
     var hasProposal=docs.some(function(d){return(d.id==="proposal"||d.id==="roi")&&SENT_STATUSES.indexOf(d.status)>=0;});
-    if(hasProposal)return{suggestedStage:3,reason:"Proposal or pricing sent",confidence:"high",autoApply:false};
+    var hasDDMeeting=logs.filter(function(e){return e.category==="meeting_notes";}).length>=2;
+    if(hasProposal||hasDDMeeting)return{suggestedStage:3,reason:hasProposal?"Proposal or ROI sent — enter Deep Dive":"Multiple meetings held — ready for solution validation",confidence:"high",autoApply:false};
     return null;
   }
   if(stage===3){
     var hasContract=docs.some(function(d){return d.id==="contract"&&SENT_STATUSES.indexOf(d.status)>=0;});
-    if(hasContract)return{suggestedStage:4,reason:"Contract on file",confidence:"high",autoApply:false};
+    if(hasContract)return{suggestedStage:4,reason:"Contract on file — move to ON THE WIRE",confidence:"high",autoApply:false};
     return null;
   }
   return null;
@@ -601,4 +683,107 @@ function card(accent,noPad){
   return {background:C.surf,border:"1px solid "+(accent?accent+"28":C.line),
     borderRadius:C.radius,padding:noPad?0:20,position:"relative",
     boxShadow:C.shadow};
+}
+
+function serializeActivePrompt(leads, sequences) {
+  var now = Date.now();
+  var day7ms = 7 * 24 * 3600 * 1000;
+
+  // Section 1: pipeline stage counts
+  var stageLabels = {"-1":"Unstarted","0":"Signal","1":"Echo","2":"Locked","3":"DeepDive","4":"OnTheWire"};
+  var stageCounts = {"-1":0,"0":0,"1":0,"2":0,"3":0,"4":0};
+  (leads||[]).forEach(function(l){
+    var s = String(l.pipeline!=null?l.pipeline:-1);
+    if(stageCounts[s]!=null) stageCounts[s]++;
+  });
+  var s1 = "[PIPELINE]";
+  ["-1","0","1","2","3","4"].forEach(function(k){ if(stageCounts[k]>0) s1+=" "+stageLabels[k]+":"+stageCounts[k]; });
+
+  // Section 2: signal types in last 7 days
+  var sigFreq = {};
+  (leads||[]).forEach(function(l){
+    (l.signals||[]).forEach(function(sig){
+      if(sig.detectedAt && now-new Date(sig.detectedAt).getTime()<=day7ms){
+        sigFreq[sig.type]=(sigFreq[sig.type]||0)+1;
+      }
+    });
+  });
+  var sigSorted = Object.keys(sigFreq).sort(function(a,b){return sigFreq[b]-sigFreq[a];});
+  var s2 = "[SIGNALS/7D]";
+  if(sigSorted.length===0){ s2+=" none"; }
+  else{ sigSorted.slice(0,6).forEach(function(k){ s2+=" "+k+":"+sigFreq[k]; }); }
+
+  // Section 3: sequence performance from stepOutcome
+  var totalOutcomes=0, replied=0, posReply=0, callBooked=0;
+  var seqArr = Array.isArray(sequences)?sequences:[];
+  seqArr.forEach(function(seq){
+    var prog = seq.leadProgress||seq.enrolledLeads||{};
+    Object.keys(prog).forEach(function(lid){
+      var lp = prog[lid];
+      var outcomes = lp.stepOutcome||{};
+      Object.keys(outcomes).forEach(function(k){
+        var o = outcomes[k];
+        totalOutcomes++;
+        if(o&&o.replied) replied++;
+        if(o&&o.positive) posReply++;
+        if(o&&o.callBooked) callBooked++;
+      });
+    });
+  });
+  var s3 = "[SEQ_PERF]";
+  if(totalOutcomes===0){ s3+=" no outcome data"; }
+  else{
+    s3+=" reply:"+Math.round(replied/totalOutcomes*100)+"% pos:"+Math.round(posReply/totalOutcomes*100)+"% call:"+Math.round(callBooked/totalOutcomes*100)+"% ("+totalOutcomes+" steps)";
+  }
+
+  // Section 4: best-performing patterns from weekly report
+  var s4 = "[PATTERNS]";
+  try{
+    var wr = JSON.parse(localStorage.getItem("pcrm_v9_weekly_reports")||"[]");
+    if(wr.length>0){
+      var latest = wr[wr.length-1];
+      s4+=" opener:"+(latest.bestOpenerPattern||"n/a")+" signal:"+(latest.bestSignalType||"n/a");
+    } else { s4+=" not enough data yet"; }
+  } catch(_){ s4+=" not enough data yet"; }
+
+  // Section 5: top 5 leads by totalScore
+  var sorted = (leads||[]).slice().sort(function(a,b){return (b.totalScore||0)-(a.totalScore||0);});
+  var s5 = "[TOP5]";
+  sorted.slice(0,5).forEach(function(l){ s5+=" "+(l.company||"?")+"("+(l.totalScore||0)+")"; });
+
+  // Section 6: trend indicators (only if >= 7 daily reports)
+  var s6 = "";
+  try{
+    var dr = JSON.parse(localStorage.getItem("pcrm_v9_daily_reports")||"[]");
+    if(dr.length>=7){
+      var last7 = dr.slice(-7);
+      var prev7 = dr.slice(-14,-7);
+      var parts = [];
+      if(prev7.length>=7){
+        var avgRLast = last7.reduce(function(s,d){return s+(d.replyRate||0);},0)/7;
+        var avgRPrev = prev7.reduce(function(s,d){return s+(d.replyRate||0);},0)/7;
+        var rdiff = Math.round((avgRLast-avgRPrev)*100);
+        if(rdiff!==0) parts.push("Reply rate "+(rdiff>0?"increased":"decreased")+" by "+Math.abs(rdiff)+"% in the last 7 days.");
+        var sigLast = last7.reduce(function(s,d){return s+(d.signalCount||0);},0);
+        var sigPrev = prev7.reduce(function(s,d){return s+(d.signalCount||0);},0);
+        var sdiff = sigLast-sigPrev;
+        if(sdiff!==0) parts.push("Signal volume "+(sdiff>0?"increased":"decreased")+" by "+Math.abs(sdiff)+" in the last 7 days.");
+      }
+      if(parts.length>0) s6="[TRENDS] "+parts.join(" ");
+    }
+  } catch(_){}
+
+  // Assemble with 2000 char limit — s6 always preserved, s1-s5 truncated if needed
+  var NL = String.fromCharCode(10);
+  var sections = [s1,s2,s3,s4,s5];
+  var result = sections.join(NL)+(s6?NL+s6:"");
+  if(result.length>2000){
+    var s6Reserve = s6?s6.length+1:0;
+    var budget = 1995-s6Reserve;
+    var trimTo = Math.floor(budget/5);
+    var trimmed = sections.map(function(s){return s.length>trimTo?s.slice(0,trimTo):s;});
+    result = trimmed.join(NL)+(s6?NL+s6:"");
+  }
+
+  localStorage.setItem("pcrm_v9_active_prompt", result);
 }
