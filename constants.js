@@ -1,6 +1,5 @@
-/* ── CLAUDE MODEL IDs ──────────────────────────────────────────────────────── */
-const CLAUDE_HAIKU = "claude-haiku-4-5-20251001";
-const CLAUDE_SONNET = "claude-sonnet-4-20250514";
+/* ── AI MODEL ───────────────────────────────────────────────────────────────── */
+const GEMINI_FLASH = "gemini-2.0-flash";
 
 function checkStorageSize(){
   var leadsVal=localStorage.getItem("pcrm_v9_leads")||"";

@@ -102,10 +102,10 @@ async function generateAiSuggestion(deal,icp,apiKey){
     "Return exactly this JSON shape:\n"+
     "{\"action\":\"<imperative, max 10 words>\",\"reasoning\":\"<fact-based, max 12 words>\",\"why\":[\"<max 15 words>\",\"<max 15 words>\",\"<max 15 words>\"],\"dataUsed\":[\"<max 15 words>\",\"<max 15 words>\",\"<max 15 words>\"],\"gaps\":[\"<max 15 words>\",\"<max 15 words>\"],\"confidence\":\"high|mid|low\"}";
   try{
-    var resp=await fetch("https://api.anthropic.com/v1/messages",{
+    var resp=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+apiKey,{
       method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({model:CLAUDE_HAIKU,max_tokens:400,messages:[{role:"user",content:prompt}]})
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
     });
     var data=await resp.json();
     var text=(data.content&&data.content[0]&&data.content[0].text)||"{}";
@@ -133,10 +133,10 @@ async function parseCapture(text,leads,nowDealId,apiKey){
     "Return JSON only:\n"+
     "{\"dealId\":\"<id from list or null>\",\"confidence\":\"high|mid|low\",\"eventType\":\"call|email|note|meeting\",\"summary\":\"<max 20 words>\",\"proposedNextStep\":\"<max 10 words or null>\",\"ambiguous\":true|false}";
   try{
-    var resp=await fetch("https://api.anthropic.com/v1/messages",{
+    var resp=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+apiKey,{
       method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({model:CLAUDE_HAIKU,max_tokens:200,messages:[{role:"user",content:prompt}]})
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
     });
     var data=await resp.json();
     var text2=(data.content&&data.content[0]&&data.content[0].text)||"{}";
@@ -188,10 +188,10 @@ async function generateDealDiagnosis(lead,sequences,icp,apiKey){
     "Return exactly:\n"+
     "{\"currentState\":\"<what is objectively true now, max 12 words>\",\"risk\":\"<biggest risk if nothing changes, max 12 words>\",\"decidingQuestion\":\"<the one question that determines outcome, max 12 words>\"}";
   try{
-    var resp=await fetch("https://api.anthropic.com/v1/messages",{
+    var resp=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+apiKey,{
       method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({model:CLAUDE_HAIKU,max_tokens:250,messages:[{role:"user",content:prompt}]})
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
     });
     var data=await resp.json();
     var text=(data.content&&data.content[0]&&data.content[0].text)||"{}";
