@@ -1,5 +1,5 @@
 /* ── AI MODEL ───────────────────────────────────────────────────────────────── */
-const OR_MODEL = "mistralai/mistral-7b-instruct:free";
+const OR_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
 
 function checkStorageSize(){
   var leadsVal=localStorage.getItem("pcrm_v9_leads")||"";

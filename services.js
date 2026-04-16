@@ -105,7 +105,7 @@ async function generateAiSuggestion(deal,icp,apiKey){
     var resp=await fetch("https://openrouter.ai/api/v1/chat/completions",{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
-      body:JSON.stringify({model:"mistralai/mistral-7b-instruct:free",messages:[{role:"user",content:prompt}]})
+      body:JSON.stringify({model:"meta-llama/llama-3.3-70b-instruct:free",messages:[{role:"user",content:prompt}]})
     });
     var data=await resp.json();
     var text=(data.choices[0].message.content||"{}");
@@ -136,7 +136,7 @@ async function parseCapture(text,leads,nowDealId,apiKey){
     var resp=await fetch("https://openrouter.ai/api/v1/chat/completions",{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
-      body:JSON.stringify({model:"mistralai/mistral-7b-instruct:free",messages:[{role:"user",content:prompt}]})
+      body:JSON.stringify({model:"meta-llama/llama-3.3-70b-instruct:free",messages:[{role:"user",content:prompt}]})
     });
     var data=await resp.json();
     var text2=(data.choices[0].message.content||"{}");
@@ -191,7 +191,7 @@ async function generateDealDiagnosis(lead,sequences,icp,apiKey){
     var resp=await fetch("https://openrouter.ai/api/v1/chat/completions",{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
-      body:JSON.stringify({model:"mistralai/mistral-7b-instruct:free",messages:[{role:"user",content:prompt}]})
+      body:JSON.stringify({model:"meta-llama/llama-3.3-70b-instruct:free",messages:[{role:"user",content:prompt}]})
     });
     var data=await resp.json();
     var text=(data.choices[0].message.content||"{}");
