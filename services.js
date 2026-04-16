@@ -102,7 +102,7 @@ async function generateAiSuggestion(deal,icp,apiKey){
     "Return exactly this JSON shape:\n"+
     "{\"action\":\"<imperative, max 10 words>\",\"reasoning\":\"<fact-based, max 12 words>\",\"why\":[\"<max 15 words>\",\"<max 15 words>\",\"<max 15 words>\"],\"dataUsed\":[\"<max 15 words>\",\"<max 15 words>\",\"<max 15 words>\"],\"gaps\":[\"<max 15 words>\",\"<max 15 words>\"],\"confidence\":\"high|mid|low\"}";
   try{
-    var resp=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key="+apiKey,{
+    var resp=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+apiKey,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
@@ -133,7 +133,7 @@ async function parseCapture(text,leads,nowDealId,apiKey){
     "Return JSON only:\n"+
     "{\"dealId\":\"<id from list or null>\",\"confidence\":\"high|mid|low\",\"eventType\":\"call|email|note|meeting\",\"summary\":\"<max 20 words>\",\"proposedNextStep\":\"<max 10 words or null>\",\"ambiguous\":true|false}";
   try{
-    var resp=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key="+apiKey,{
+    var resp=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+apiKey,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
@@ -188,7 +188,7 @@ async function generateDealDiagnosis(lead,sequences,icp,apiKey){
     "Return exactly:\n"+
     "{\"currentState\":\"<what is objectively true now, max 12 words>\",\"risk\":\"<biggest risk if nothing changes, max 12 words>\",\"decidingQuestion\":\"<the one question that determines outcome, max 12 words>\"}";
   try{
-    var resp=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key="+apiKey,{
+    var resp=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+apiKey,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
