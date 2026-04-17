@@ -81,6 +81,21 @@ function extractBlockerType(txt){
   if(lo.indexOf("external")>=0||lo.indexOf("client")>=0||lo.indexOf("waiting on")>=0)return"external";
   return"internal";
 }
+async function orFetch(apiKey,prompt){
+  var delays=[1000,3000];
+  for(var attempt=0;attempt<=delays.length;attempt++){
+    var resp=await fetch("https://openrouter.ai/api/v1/chat/completions",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
+      body:JSON.stringify({model:OR_MODEL,messages:[{role:"user",content:prompt}]})
+    });
+    if(resp.status===429&&attempt<delays.length){
+      await new Promise(function(r){setTimeout(r,delays[attempt]);});
+      continue;
+    }
+    return resp;
+  }
+}
 async function generateAiSuggestion(deal,icp,apiKey){
   if(!apiKey)return null;
   var pc=primaryContact(deal);
@@ -102,11 +117,7 @@ async function generateAiSuggestion(deal,icp,apiKey){
     "Return exactly this JSON shape:\n"+
     "{\"action\":\"<imperative, max 10 words>\",\"reasoning\":\"<fact-based, max 12 words>\",\"why\":[\"<max 15 words>\",\"<max 15 words>\",\"<max 15 words>\"],\"dataUsed\":[\"<max 15 words>\",\"<max 15 words>\",\"<max 15 words>\"],\"gaps\":[\"<max 15 words>\",\"<max 15 words>\"],\"confidence\":\"high|mid|low\"}";
   try{
-    var resp=await fetch("https://openrouter.ai/api/v1/chat/completions",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
-      body:JSON.stringify({model:"meta-llama/llama-3.3-70b-instruct:free",messages:[{role:"user",content:prompt}]})
-    });
+    var resp=await orFetch(apiKey,prompt);
     var data=await resp.json();
     var text=(data.choices[0].message.content||"{}");
     var jsonMatch=text.match(/\{[\s\S]*\}/);
@@ -133,11 +144,7 @@ async function parseCapture(text,leads,nowDealId,apiKey){
     "Return JSON only:\n"+
     "{\"dealId\":\"<id from list or null>\",\"confidence\":\"high|mid|low\",\"eventType\":\"call|email|note|meeting\",\"summary\":\"<max 20 words>\",\"proposedNextStep\":\"<max 10 words or null>\",\"ambiguous\":true|false}";
   try{
-    var resp=await fetch("https://openrouter.ai/api/v1/chat/completions",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
-      body:JSON.stringify({model:"meta-llama/llama-3.3-70b-instruct:free",messages:[{role:"user",content:prompt}]})
-    });
+    var resp=await orFetch(apiKey,prompt);
     var data=await resp.json();
     var text2=(data.choices[0].message.content||"{}");
     var jsonMatch=text2.match(/\{[\s\S]*\}/);
@@ -188,11 +195,7 @@ async function generateDealDiagnosis(lead,sequences,icp,apiKey){
     "Return exactly:\n"+
     "{\"currentState\":\"<what is objectively true now, max 12 words>\",\"risk\":\"<biggest risk if nothing changes, max 12 words>\",\"decidingQuestion\":\"<the one question that determines outcome, max 12 words>\"}";
   try{
-    var resp=await fetch("https://openrouter.ai/api/v1/chat/completions",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
-      body:JSON.stringify({model:"meta-llama/llama-3.3-70b-instruct:free",messages:[{role:"user",content:prompt}]})
-    });
+    var resp=await orFetch(apiKey,prompt);
     var data=await resp.json();
     var text=(data.choices[0].message.content||"{}");
     var jsonMatch=text.match(/\{[\s\S]*\}/);
