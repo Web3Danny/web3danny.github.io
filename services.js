@@ -14,6 +14,30 @@ function encodeRfc822(to,subject,body){
   var raw=lines.join("\r\n");
   try{return btoa(unescape(encodeURIComponent(raw))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}catch(e){return btoa(raw).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}
 }
+function encodeRfc822WithAttachments(to,subject,htmlBody,attachments){
+  var boundary="pcrm_"+Date.now();
+  var parts=["To: "+to,"Subject: "+subject,"MIME-Version: 1.0","Content-Type: multipart/mixed; boundary=\""+boundary+"\"","","--"+boundary,"Content-Type: text/html; charset=UTF-8","",""+htmlBody,""];
+  (attachments||[]).forEach(function(att){
+    var b64=att.data?att.data.split(",")[1]:att.b64||"";
+    var wrapped=b64.match(/.{1,76}/g)||[];
+    parts.push("--"+boundary,"Content-Type: "+(att.type||"application/octet-stream")+"; name=\""+att.name+"\"","Content-Disposition: attachment; filename=\""+att.name+"\"","Content-Transfer-Encoding: base64","",wrapped.join("\r\n"),"");
+  });
+  parts.push("--"+boundary+"--");
+  var raw=parts.join("\r\n");
+  try{var bytes=new TextEncoder().encode(raw);var bin="";var chunk=8192;for(var i=0;i<bytes.length;i+=chunk){bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));}return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}
+  catch(e){try{return btoa(unescape(encodeURIComponent(raw))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}catch(e2){return btoa(raw).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");}}
+}
+var ATTACH_MAX_MB=10,ATTACH_TOTAL_MB=25;
+function validateAttachments(files,existing){
+  var errs=[];
+  var totalBytes=(existing||[]).reduce(function(s,a){return s+a.size;},0);
+  Array.from(files).forEach(function(f){
+    if(f.size>ATTACH_MAX_MB*1024*1024){errs.push(f.name+" is "+Math.round(f.size/1024/1024*10)/10+"MB — max "+ATTACH_MAX_MB+"MB per file");}
+    else{totalBytes+=f.size;}
+  });
+  if(totalBytes>ATTACH_TOTAL_MB*1024*1024){errs.push("Total attachments exceed "+ATTACH_TOTAL_MB+"MB limit");}
+  return errs;
+}
 /* ── GOOGLE DRIVE SYNC ──────────────────────────────────── */
 var DRIVE_FILE_NAME="pcrm_sync.json";
 async function driveFindFile(tok){
@@ -53,8 +77,8 @@ async function driveSave(tok,payload){
   }
 }
 
-function sendViaGmail(tok,to,subject,body){
-  var raw=encodeRfc822(to,subject,body);
+function sendViaGmail(tok,to,subject,body,attachments){
+  var raw=attachments&&attachments.length>0?encodeRfc822WithAttachments(to,subject,body,attachments):encodeRfc822(to,subject,body);
   return fetch("https://www.googleapis.com/gmail/v1/users/me/messages/send",{method:"POST",headers:{"Authorization":"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify({raw:raw})}).then(function(r){if(!r.ok){return r.json().then(function(err){var msg=err&&err.error&&err.error.message||"";if(r.status===403)throw new Error("403 Forbidden — reconnect Google (click G) to grant send permission. "+msg);if(r.status===401)throw new Error("401 Token expired — reconnect Google (click G). "+msg);throw new Error("Gmail error "+r.status+": "+msg);}).catch(function(e){if(e.message.indexOf("403")>=0||e.message.indexOf("401")>=0)throw e;throw new Error("Gmail send failed: "+r.status+" — try reconnecting Google");});}return r.json();});
 }
 function parseEmailFromPitch(pitch){
