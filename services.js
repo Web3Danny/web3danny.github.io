@@ -81,17 +81,28 @@ function extractBlockerType(txt){
   if(lo.indexOf("external")>=0||lo.indexOf("client")>=0||lo.indexOf("waiting on")>=0)return"external";
   return"internal";
 }
+function showAiError(msg){
+  var el=document.createElement("div");
+  el.textContent=msg;
+  el.style.cssText="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#FF6B6B;color:#fff;padding:10px 20px;border-radius:6px;z-index:9999;font-size:14px;pointer-events:none;";
+  document.body.appendChild(el);
+  setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},5000);
+}
 async function orFetch(apiKey,prompt){
-  var delays=[1000,3000];
+  var delays=[5000,15000];
   for(var attempt=0;attempt<=delays.length;attempt++){
-    var resp=await fetch("https://openrouter.ai/api/v1/chat/completions",{
+    var resp=await fetch("https://api.cloudflare.com/client/v4/accounts/2e8ed554fa40270c33dc4d0146fed276/ai/run/@cf/meta/llama-3.1-8b-instruct",{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
-      body:JSON.stringify({model:OR_MODEL,messages:[{role:"user",content:prompt}]})
+      body:JSON.stringify({messages:[{role:"user",content:prompt}]})
     });
     if(resp.status===429&&attempt<delays.length){
       await new Promise(function(r){setTimeout(r,delays[attempt]);});
       continue;
+    }
+    if(resp.status===429){
+      showAiError("AI service temporarily busy \u2014 please try again in a moment.");
+      throw new Error("RATE_LIMITED");
     }
     return resp;
   }
@@ -119,7 +130,7 @@ async function generateAiSuggestion(deal,icp,apiKey){
   try{
     var resp=await orFetch(apiKey,prompt);
     var data=await resp.json();
-    var text=(data.choices[0].message.content||"{}");
+    var text=(data.result.response||"{}");
     var jsonMatch=text.match(/\{[\s\S]*\}/);
     var parsed=jsonMatch?JSON.parse(jsonMatch[0]):{};
     parsed.action=truncateAI(parsed.action||"Review deal status",10);
@@ -146,7 +157,7 @@ async function parseCapture(text,leads,nowDealId,apiKey){
   try{
     var resp=await orFetch(apiKey,prompt);
     var data=await resp.json();
-    var text2=(data.choices[0].message.content||"{}");
+    var text2=(data.result.response||"{}");
     var jsonMatch=text2.match(/\{[\s\S]*\}/);
     var parsed=jsonMatch?JSON.parse(jsonMatch[0]):{};
     parsed.dealId=parsed.dealId&&(leads||[]).some(function(l){return l.id===parsed.dealId;})?parsed.dealId:nowDealId;
@@ -197,7 +208,7 @@ async function generateDealDiagnosis(lead,sequences,icp,apiKey){
   try{
     var resp=await orFetch(apiKey,prompt);
     var data=await resp.json();
-    var text=(data.choices[0].message.content||"{}");
+    var text=(data.result.response||"{}");
     var jsonMatch=text.match(/\{[\s\S]*\}/);
     var parsed=jsonMatch?JSON.parse(jsonMatch[0]):{};
     parsed.currentState=truncateAI(parsed.currentState||"Insufficient data",12);
