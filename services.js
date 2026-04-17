@@ -91,10 +91,10 @@ function showAiError(msg){
 async function orFetch(apiKey,prompt){
   var delays=[5000,15000];
   for(var attempt=0;attempt<=delays.length;attempt++){
-    var resp=await fetch("https://api.cloudflare.com/client/v4/accounts/2e8ed554fa40270c33dc4d0146fed276/ai/run/@cf/meta/llama-3.1-8b-instruct",{
+    var resp=await fetch("https://api.groq.com/openai/v1/chat/completions",{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
-      body:JSON.stringify({messages:[{role:"user",content:prompt}]})
+      body:JSON.stringify({model:"llama-3.1-8b-instant",messages:[{role:"user",content:prompt}]})
     });
     if(resp.status===429&&attempt<delays.length){
       await new Promise(function(r){setTimeout(r,delays[attempt]);});
@@ -130,7 +130,7 @@ async function generateAiSuggestion(deal,icp,apiKey){
   try{
     var resp=await orFetch(apiKey,prompt);
     var data=await resp.json();
-    var text=(data.result.response||"{}");
+    var text=(data.choices[0].message.content||"{}");
     var jsonMatch=text.match(/\{[\s\S]*\}/);
     var parsed=jsonMatch?JSON.parse(jsonMatch[0]):{};
     parsed.action=truncateAI(parsed.action||"Review deal status",10);
@@ -157,7 +157,7 @@ async function parseCapture(text,leads,nowDealId,apiKey){
   try{
     var resp=await orFetch(apiKey,prompt);
     var data=await resp.json();
-    var text2=(data.result.response||"{}");
+    var text2=(data.choices[0].message.content||"{}");
     var jsonMatch=text2.match(/\{[\s\S]*\}/);
     var parsed=jsonMatch?JSON.parse(jsonMatch[0]):{};
     parsed.dealId=parsed.dealId&&(leads||[]).some(function(l){return l.id===parsed.dealId;})?parsed.dealId:nowDealId;
@@ -208,7 +208,7 @@ async function generateDealDiagnosis(lead,sequences,icp,apiKey){
   try{
     var resp=await orFetch(apiKey,prompt);
     var data=await resp.json();
-    var text=(data.result.response||"{}");
+    var text=(data.choices[0].message.content||"{}");
     var jsonMatch=text.match(/\{[\s\S]*\}/);
     var parsed=jsonMatch?JSON.parse(jsonMatch[0]):{};
     parsed.currentState=truncateAI(parsed.currentState||"Insufficient data",12);

@@ -1,5 +1,5 @@
 /* ── AI MODEL ───────────────────────────────────────────────────────────────── */
-const CLOUDFLARE_LLAMA = "@cf/meta/llama-3.1-8b-instruct";
+const GROQ_LLAMA = "llama-3.1-8b-instant";
 
 function checkStorageSize(){
   var leadsVal=localStorage.getItem("pcrm_v9_leads")||"";
