@@ -130,8 +130,8 @@ async function orFetch(apiKey,prompt){
     }
     if(resp.status===400){
       var errBody=await resp.json().catch(function(){return{};});
-      console.error("Groq 400 error:",JSON.stringify(errBody));
-      showAiError("Groq rejected request \u2014 check console for details.");
+      var errMsg=(errBody&&errBody.error&&errBody.error.message)||JSON.stringify(errBody);
+      showAiError("Groq 400: "+errMsg.slice(0,120));
       throw new Error("BAD_REQUEST");
     }
     return resp;
