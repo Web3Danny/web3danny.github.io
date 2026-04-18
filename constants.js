@@ -30,7 +30,16 @@ const PIPE = [
   {id:3,code:"DEEP_DIVE",  label:"Deep Dive",   sub:"In evaluation / discovery",     clr:"#FF9F43"},
   {id:4,code:"ON_THE_WIRE",label:"ON THE WIRE", sub:"Signing process initiated",     clr:"#0BE881"},
 ];
-const STAGE_ALIASES = {0:"Qualified",1:"Engaged",2:"Committed",3:"Proposal",4:"Verbal / Closing"};
+const STAGE_ALIASES = {0:"Qualified",1:"Engaged",2:"Committed",3:"Proposal",4:"Closing"};
+/* pipeLbl(idx) — returns stage label according to user's chosen display mode */
+function pipeLbl(idx){
+  var mode=(typeof window!=="undefined"&&window.__pcrmPipeLabelMode)||"alias";
+  if(idx<0||idx>=PIPE.length)return"Unstarted";
+  if(mode==="original")return PIPE[idx].label;
+  if(mode==="both")return STAGE_ALIASES&&STAGE_ALIASES[idx]?PIPE[idx].label+" \u00b7 "+STAGE_ALIASES[idx]:PIPE[idx].label;
+  return STAGE_ALIASES&&STAGE_ALIASES[idx]?STAGE_ALIASES[idx]:PIPE[idx].label;
+}
+if(typeof window!=="undefined"){window.__pcrmPipeLabelMode=(localStorage&&localStorage.getItem("pcrm_v9_pipe_labels"))||"alias";}
 /* Milestone labels for execution graph */
 const GRAPH_MILESTONES=[
   {id:"commitment_secured",label:"Commitment Secured",stage:2,defaultBranches:["Prepare NDA","Align stakeholders","Confirm next step"]},

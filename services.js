@@ -244,3 +244,23 @@ async function generateDealDiagnosis(lead,sequences,icp,apiKey){
     return{currentState:"Unable to diagnose",risk:"AI unavailable",decidingQuestion:"Check deal manually",generatedAt:new Date().toISOString()};
   }
 }
+async function generateWeeklyReport(dailyReports,apiKey){
+  if(!apiKey||!dailyReports||!dailyReports.length)return null;
+  var last7=dailyReports.slice(-7);
+  var summaries=last7.map(function(r,i){
+    return "Day "+(i+1)+" ("+new Date(r.date).toLocaleDateString()+"): "+(r.aiText||"");
+  }).join("\n\n");
+  var prompt="You are analysing "+last7.length+" daily sales summaries for a BDM. Return JSON only, no markdown.\n\nOnly report what you can directly observe in the data provided. If you cannot find evidence for a field, write 'No data yet'. Never invent numbers, percentages, or patterns that are not present in the data. A short honest report is better than a complete fabricated one.\n\nDaily summaries:\n"+summaries+"\n\nReturn exactly:\n{\"workingEmail\":\"<what is working best in email outreach based only on observed data, or 'No data yet'>\",\"workingCalls\":\"<what is working best in calls based only on observed data, or 'No data yet'>\",\"notWorking\":\"<what is not working across channels based only on observed data, or 'No data yet'>\",\"bestSignalType\":\"<best signal type by conversion based only on observed data, or 'No data yet'>\",\"bestOpener\":\"<best opener pattern based only on observed data, or 'No data yet'>\",\"bestContactRole\":\"<best contact role by full-cycle conversion based only on observed data, or 'No data yet'>\",\"avgTimeToProgression\":\"<average time from first signal to progression based only on observed data, or 'No data yet'>\"}";
+  try{
+    var resp=await orFetch(apiKey,prompt);
+    var data=await resp.json();
+    var text=(data.choices[0].message.content||"{}");
+    var jsonMatch=text.match(/\{[\s\S]*\}/);
+    var parsed=jsonMatch?JSON.parse(jsonMatch[0]):{};
+    parsed.generatedAt=new Date().toISOString();
+    parsed.daysAnalysed=last7.length;
+    return parsed;
+  }catch(e){
+    return null;
+  }
+}
