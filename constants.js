@@ -80,6 +80,12 @@ function migrateLeadPipelineV8(lead){
   var contacts=(lead.contacts||[]).map(function(c){return c.role?c:Object.assign({},c,{role:"unknown"});});
   return Object.assign({enrichment:null,signals:[],outreachOutcome:null,callOutcomes:[],snoozedUntil:null,snoozeReason:null},lead,{contacts:contacts});
 }
+function migrateLeadStatusV9(lead){
+  var old=lead.status;
+  if(old==="new"||old==="contacted"||old==="qualified")return Object.assign({},lead,{status:"active"});
+  if(old==="not_fit")return lead;
+  return Object.assign({},lead,{status:"active"});
+}
 const PIPE_NONE = -1;
 const CRITERIA = [
   {id:"decisionMaker",label:"Decision-Maker Access",short:"DM ACCESS",clr:"#FFE066"},
@@ -91,12 +97,10 @@ const CRITERIA = [
 ];
 const DEF_WEIGHTS = {decisionMaker:20,engagement:15,companySize:15,industryFit:20,budget:15,painPoint:15};
 const DEF_ICP = {productDescription:"",targetIndustries:"",targetSize:"",idealBudget:"",painPoints:"",bdmName:"",currency:"€"};
-const STATUSES = ["new","contacted","qualified","not_fit"];
+const STATUSES = ["active","not_fit"];
 const ST_META = {
-  new:      {label:"New",       clr:"#78909C", bg:"rgba(120,144,156,0.12)"},
-  contacted:{label:"Contacted", clr:"#888888", bg:"rgba(136,136,136,0.12)"},
-  qualified:{label:"Qualified", clr:"#888888", bg:"rgba(136,136,136,0.12)"},
-  not_fit:  {label:"Not a fit", clr:"#78909C", bg:"rgba(120,144,156,0.12)"},
+  active:  {label:"Active",    clr:"#0BE881", bg:"rgba(11,232,129,0.08)"},
+  not_fit: {label:"Not a fit", clr:"#FF6B6B", bg:"rgba(255,107,107,0.12)"},
 };
 const LOG_CATS = {
   call:           {label:"Call",              icon:"📞",clr:"#999999"},
@@ -126,13 +130,14 @@ const OUTPUT_TYPES = [
 ];
 const TONES = [{id:"formal",label:"Formal"},{id:"casual",label:"Casual"},{id:"short",label:"Short"}];
 const BLOCKER_TYPES = ["internal","external"];
-const DOC_STATUSES = ["needed","in_progress","sent","received","approved"];
+const DOC_STATUSES = ["needed","in_progress","sent","received","approved","signed"];
 const DOC_STATUS_META = {
   needed:{label:"Needed",clr:"#888888",icon:"\u25cb"},
   in_progress:{label:"In Progress",clr:"#FFE066",icon:"\u25d0"},
   sent:{label:"Sent",clr:"#FF9F43",icon:"\u25d1"},
   received:{label:"Received",clr:"#3CB371",icon:"\u25d5"},
-  approved:{label:"Approved",clr:"#0BE881",icon:"●"}
+  approved:{label:"Approved",clr:"#0BE881",icon:"●"},
+  signed:{label:"Signed",clr:"#0BE881",icon:"\u2713"}
 };
 const DEAL_DOCS = [
   {id:"nda",name:"NDA",stages:[1,2],category:"legal"},
@@ -292,6 +297,64 @@ function makeLead(data,weights){
     accountData:{renewalDate:"",healthScore:"happy",upsellStatus:"none",upsellNotes:"",qbrDate:"",supportIssues:"",accountNotes:""},
     enrichment:null,signals:[],outreachOutcome:null,callOutcomes:[],snoozedUntil:null,snoozeReason:null,
     ...data,totalScore:calcScore(data.scores||{},weights)};
+}
+/* ── STAGE GATE RULES ────────────────────────────────────────────────────────
+   checkStageGate(lead, currentStageIdx)
+   currentStageIdx: -1=Unstarted, 0=Signal, 1=Echo, 2=Locked, 3=Deep Dive
+   Returns {met:bool, missing:string[]}
+────────────────────────────────────────────────────────────────────────────── */
+function checkStageGate(lead, currentStageIdx){
+  var missing=[];
+  var logs=lead.logEntries||[];
+  var docs=lead.dealRoom||[];
+  var contacts=lead.contacts||[];
+  var dp=(lead.outreachOutcome&&lead.outreachOutcome.dealProgression)||"not_tracked";
+
+  if(currentStageIdx===-1){
+    /* Unstarted -> Signal: company data exists (1 signal) */
+    var hasData=contacts.length>0||(lead.notes&&lead.notes.trim().length>0)||lead.website||lead.industry;
+    if(!hasData)missing.push("Add at least one contact, notes, website, or industry to profile the account.");
+  } else if(currentStageIdx===0){
+    /* Signal -> Echo: outreach made + 1 doc in deal room (1 signal + doc) */
+    var hasOutreach=logs.some(function(e){return e.category==="call"||e.category==="email";});
+    if(!hasOutreach)missing.push("Log at least one outbound call or email to this account.");
+    var hasDoc=docs.length>0;
+    if(!hasDoc)missing.push("Add at least one document to Deal Room — confirms the relationship has moved beyond cold outreach.");
+  } else if(currentStageIdx===1){
+    /* Echo -> Locked: pain info + call/meeting happened + next step agreed + NDA (3 signals + NDA) */
+    var hasPain=lead.notes&&lead.notes.trim().length>10;
+    if(!hasPain)missing.push("Document their pain points and needs in Notes.");
+    var positiveDP=["call_happened","meeting_booked","deal_advanced","relationship_maintained"].indexOf(dp)>=0;
+    var hasMeetingLog=logs.some(function(e){return e.category==="meeting_notes"||e.category==="call";});
+    if(!positiveDP&&!hasMeetingLog)missing.push("Log a call or meeting — a conversation must have taken place.");
+    var hasNextStep=lead.nextStep&&lead.nextStep.action&&lead.nextStep.action.trim().length>0;
+    if(!hasNextStep)missing.push("Set a next step with a concrete date or meeting agreed.");
+    var hasNda=docs.some(function(d){return d.name&&/nda/i.test(d.name);});
+    if(!hasNda)missing.push("Add NDA document to Deal Room to initiate the NDA process.");
+  } else if(currentStageIdx===2){
+    /* Locked -> Deep Dive: RFPI initiated OR 3 engagement signals */
+    var hasRfp=docs.some(function(d){return d.name&&/rfp|rfi|rfpi|request for/i.test(d.name);});
+    if(hasRfp){return{met:true,missing:[]};}
+    var hasPricing=logs.some(function(e){return /pric|cost|budget|fee/i.test(e.content||"");});
+    if(!hasPricing)missing.push("Log a pricing or budget discussion with the prospect.");
+    var hasDemo=logs.some(function(e){return e.category==="meeting_notes"||/demo|presentation|overview/i.test(e.content||"");});
+    if(!hasDemo)missing.push("Log a demo or detailed product presentation.");
+    var ndaApproved=docs.some(function(d){return d.name&&/nda/i.test(d.name)&&(d.status==="approved"||d.status==="sent");});
+    if(!ndaApproved)missing.push("NDA must be sent or approved. Alternatively, add an RFP/RFPI document to fast-track.");
+  } else if(currentStageIdx===3){
+    /* Deep Dive -> On the Wire: decision maker known + contract doc + active negotiation (3 signals) */
+    var hasDecisionMaker=contacts.some(function(c){
+      return c.role==="decision_maker"||c.role==="economic_buyer"||
+        (c.title&&/ceo|cfo|cto|coo|vp |vp$|director|head of|partner|owner|president/i.test(c.title));
+    });
+    if(!hasDecisionMaker)missing.push("Identify the decision maker or economic buyer in Stakeholders.");
+    var hasContract=docs.some(function(d){return d.name&&/contract|agreement|sow|statement of work|proposal/i.test(d.name);});
+    if(!hasContract)missing.push("Add a contract, proposal, or SOW document to Deal Room.");
+    var recentLogs=logs.filter(function(e){return new Date(e.timestamp)>(new Date(Date.now()-60*86400000));});
+    var hasActiveNeg=["deal_advanced","deal_closed"].indexOf(dp)>=0||recentLogs.length>=3;
+    if(!hasActiveNeg)missing.push("Log active negotiations (need 3+ activities in last 60 days or deal_advanced status).");
+  }
+  return{met:missing.length===0,missing:missing};
 }
 function computeSnapshot(leads){
   return {total:leads.length,
