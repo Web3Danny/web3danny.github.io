@@ -365,3 +365,36 @@ async function parseStructuredNote(raw, lead, apiKey){
     return null;
   }
 }
+
+async function getOrCreateGmailLabel(tok,name){
+  if(!tok||!name)return null;
+  try{
+    var r=await fetch("https://www.googleapis.com/gmail/v1/users/me/labels",{headers:{Authorization:"Bearer "+tok}});
+    var d=await r.json();
+    var ex=(d.labels||[]).find(function(l){return l.name===name;});
+    if(ex)return ex.id;
+    var r2=await fetch("https://www.googleapis.com/gmail/v1/users/me/labels",{method:"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify({name:name,labelListVisibility:"labelShow",messageListVisibility:"show"})});
+    var cr=await r2.json();
+    return cr.id||null;
+  }catch(e){return null;}
+}
+async function applyGmailLabel(tok,messageId,labelId){
+  if(!tok||!messageId||!labelId)return;
+  try{
+    await fetch("https://www.googleapis.com/gmail/v1/users/me/messages/"+messageId+"/modify",{method:"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify({addLabelIds:[labelId]})});
+  }catch(e){}
+}
+async function fetchGmailBody(tok,messageId){
+  if(!tok||!messageId)return"";
+  try{
+    var r=await fetch("https://www.googleapis.com/gmail/v1/users/me/messages/"+messageId+"?format=full",{headers:{Authorization:"Bearer "+tok}});
+    var d=await r.json();
+    function xb(p){
+      if(!p)return"";
+      if(p.mimeType==="text/plain"&&p.body&&p.body.data){try{return atob(p.body.data.replace(/-/g,"+").replace(/_/g,"/"));}catch(e){return"";}}
+      if(p.parts){for(var i=0;i<p.parts.length;i++){var b=xb(p.parts[i]);if(b)return b;}}
+      return"";
+    }
+    return xb(d.payload)||d.snippet||"";
+  }catch(e){return"";}
+}
