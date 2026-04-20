@@ -288,12 +288,13 @@ function fmtDateShort(iso){
   catch(_){return iso;}
 }
 function uid(p){return p+"_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);}
-function makeContact(o){return Object.assign({id:uid("c"),name:"",title:"",email:"",phone:"",linkedin:"",notes:"",lastContacted:"",role:"unknown"},o||{});}
+function makeContact(o){return Object.assign({id:uid("c"),name:"",title:"",email:"",phone:"",linkedin:"",notes:"",lastContacted:"",role:"unknown",relationships:[]},o||{});}
 function makeLead(data,weights){
   return {id:uid("lead"),aiPitch:"",createdAt:new Date().toISOString(),
+    leadType:"prospect",
     pipeline:PIPE_NONE,pipelineHistory:[],contacts:[],blocker:null,blockerHistory:[],
     logEntries:[],summary:{currentStatus:"",latestUpdate:"",goal:"",generatedAt:null},
-    dealValue:0,closedAt:null,dealRoom:[],
+    dealValue:0,closedAt:null,dealRoom:[],deals:[],
     accountData:{renewalDate:"",healthScore:"happy",upsellStatus:"none",upsellNotes:"",qbrDate:"",supportIssues:"",accountNotes:""},
     enrichment:null,signals:[],outreachOutcome:null,callOutcomes:[],snoozedUntil:null,snoozeReason:null,
     ...data,totalScore:calcScore(data.scores||{},weights)};
