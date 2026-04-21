@@ -640,6 +640,10 @@ function computeStageSuggestion(lead){
     if(hasContract)return{suggestedStage:4,reason:"Contract on file — move to ON THE WIRE",confidence:"high",autoApply:false};
     return null;
   }
+  var _fallbackGate=checkStageGate(lead,stage);
+  if(_fallbackGate.met&&stage<4&&PIPE[stage+1]){
+    return{suggestedStage:stage+1,reason:"Stage gate met — ready to advance",confidence:"high",autoApply:false};
+  }
   return null;
 }
 function parseNaturalDate(text){
