@@ -60,6 +60,10 @@ Never delete, rename, or change shape.
 2. **No regressions**: After any change, all tabs and features from previous sessions must still work. Test the golden path before reporting done.
 3. **Size discipline**: Always check combined Babel input sizes after edits. Do not let either pass exceed its headroom.
 
+## UI Redesign Regression Rule
+
+Before any UI restructure or redesign task, the CTO must take a snapshot of all existing functionality in that component and verify every single feature still works after the change. If any existing feature is missing or broken after a redesign, the task cannot be marked done regardless of what new features were added. The QA Engineer must run a regression check against the pre-change feature list. This rule applies to every task that touches existing components.
+
 ## Three Architecture Rules
 
 **Rule A — Campaigns is the only automation entry point.** Leads = data only. Sequences = templates only. Compose = manual only. No other tab triggers multi-step automation.
