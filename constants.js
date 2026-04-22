@@ -1,5 +1,5 @@
 /* ── VERSION ─────────────────────────────────────────────────────────────────── */
-const VERSION = '04.27.23';
+const VERSION = '04.27.24';
 
 /* ── AI MODEL ───────────────────────────────────────────────────────────────── */
 const GROQ_LLAMA = "llama-3.3-70b-versatile";
@@ -154,7 +154,7 @@ const DEAL_DOCS = [
   {id:"contract",name:"Contract / MSA / SLA",stages:[4],category:"legal"},
   {id:"onboarding",name:"Onboarding Checklist",stages:[3],category:"operations"}
 ];
-const SK = {leads:"pcrm_v9_leads",sequences:"pcrm_v9_sequences",campaigns:"pcrm_v9_campaigns",icp:"pcrm_v9_icp",weights:"pcrm_v9_weights",statsHistory:"pcrm_v9_stats",reminders:"pcrm_v9_reminders",apiKey:"pcrm_v9_apikey",strategy:"pcrm_v9_strategy",lastBackup:"pcrm_v9_lastbackup",scheduledEmails:"pcrm_v9_scheduled",weeklyGoal:"pcrm_v9_wgoal",emailTemplates:"pcrm_v9_templates",internalTeam:"pcrm_v9_team",qna:"pcrm_v9_qna",compIntel:"pcrm_v9_compintel",dailyReports:"pcrm_v9_daily_reports",weeklyReports:"pcrm_v9_weekly_reports",activePrompt:"pcrm_v9_active_prompt",signature:"pcrm_v9_signature"};
+const SK = {leads:"pcrm_v9_leads",sequences:"pcrm_v9_sequences",campaigns:"pcrm_v9_campaigns",icp:"pcrm_v9_icp",weights:"pcrm_v9_weights",statsHistory:"pcrm_v9_stats",reminders:"pcrm_v9_reminders",apiKey:"pcrm_v9_apikey",strategy:"pcrm_v9_strategy",lastBackup:"pcrm_v9_lastbackup",scheduledEmails:"pcrm_v9_scheduled",weeklyGoal:"pcrm_v9_wgoal",emailTemplates:"pcrm_v9_templates",internalTeam:"pcrm_v9_team",qna:"pcrm_v9_qna",compIntel:"pcrm_v9_compintel",dailyReports:"pcrm_v9_daily_reports",weeklyReports:"pcrm_v9_weekly_reports",activePrompt:"pcrm_v9_active_prompt",signature:"pcrm_v9_signature",hunterKey:"pcrm_v9_hunter_key"};
 const STAGE_LIMITS=[3,4,5,7,5];
 const STUCK_REASONS=["No reply","Follow-up not sent","Weak contact","Wrong persona","No clear pain","Low priority for prospect","Waiting on prospect","Internal blocker","Unclear value proposition"];
 function getStuckStatus(lead){
