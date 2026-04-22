@@ -112,6 +112,8 @@ These must not be removed or broken:
 
 **DailyBriefing** receives `urgencyData` prop from `app.js` (same priority queue as Today tab). EOD Top 3 extracted via `^\d+\.` lines directly — no "TOMORROW TOP 3" header required.
 
+**Pipeline tab (Leads tab) — locked 2026-04-22:** Pipeline tab default view must show ALL leads. HOT box filters to hot leads only (clears all other active filters when toggled on). BLOCKED box filters to blocked leads only (clears all other active filters when toggled on). Both are clickable toggles. The pipeline stage pills are clickable toggles that filter by stage. This must never be changed. Filter state persists in `pcrm_v11_lead_filter` localStorage key — bump the key version if stale filters cause leads to disappear (this has happened twice: PCR-22 bumped v9→v10, PCR-48 bumped v10→v11).
+
 ## Commit Convention
 
 - Message format: `PCR-{N}: <description>`
