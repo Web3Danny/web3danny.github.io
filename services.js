@@ -414,3 +414,24 @@ async function parseGranolaNote(text,lead,apiKey){
     return jm?JSON.parse(jm[0]):null;
   }catch(e){return null;}
 }
+
+/* ── STEP 20B: URL DROP ENRICHMENT ─────────────────────────────────────────── */
+function extractDomain(text){
+  if(!text)return null;
+  var m=text.match(/https?:\/\/([a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?)+)/i);
+  if(m)return m[1].toLowerCase();
+  var m2=text.match(/\b([a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?(?:\.[a-z]{2,}){1,3})\b/i);
+  if(m2){var d=m2[1].toLowerCase();if(d.indexOf(".")!==-1&&!/^[\d.]+$/.test(d))return d;}
+  return null;
+}
+
+function triggerUrlDropEnrichment(leadId,domain){
+  var webhookUrl=null;
+  try{
+    var settings=JSON.parse(localStorage.getItem("pcrm_v9_settings")||"{}");
+    webhookUrl=settings.n8nWebhookUrl||localStorage.getItem("pcrm_v9_n8n_webhook_url")||null;
+  }catch(e){}
+  if(!webhookUrl)return;
+  var payload={leadId:leadId,domain:domain,source:"url_drop",requestId:(typeof uid==="function"?uid("enr"):Math.random().toString(36).slice(2)),updatedAt:new Date().toISOString()};
+  fetch(webhookUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).catch(function(){});
+}
