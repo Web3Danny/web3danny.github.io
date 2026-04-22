@@ -1,5 +1,5 @@
 /* ── VERSION ─────────────────────────────────────────────────────────────────── */
-const VERSION = '04.22.20';
+const VERSION = '04.22.21';
 
 /* ── AI MODEL ───────────────────────────────────────────────────────────────── */
 const GROQ_LLAMA = "llama-3.3-70b-versatile";
@@ -266,6 +266,19 @@ function scoreTier(v){return v>=75?"HOT":v>=50?"WARM":v>=25?"COLD":"SKIP";}
 function pipeClr(idx){return(idx>=0&&idx<PIPE.length)?PIPE[idx].clr:C.muted;}
 function pipeStage(l){return(l&&typeof l.pipeline==="number"&&l.pipeline>=0)?l.pipeline:PIPE_NONE;}
 function isBlocked(l){return !!(l&&l.blocker);}
+function getDealState(lead,sequences){
+  if(!lead)return null;
+  var stage=pipeStage(lead);
+  var blocked=isBlocked(lead);
+  var contacts=lead.contacts||[];
+  var owner=contacts.find(function(c){return c.role==="champion"||c.role==="economic_buyer";});
+  var seqs=sequences||[];
+  var activeSeqContacts=contacts.filter(function(ct){return seqs.some(function(s){var lp=(s.leadProgress||{})[ct.id];return lp&&!lp.bounced&&!lp.optedOut;});});
+  var isHot=!!(lead.isHot||(lead.logEntries||[]).some(function(e){return e.hot;}));
+  var isActionable=!blocked&&stage>=0&&stage<4;
+  var nextAction=(lead.logEntries||[]).slice().reverse().map(function(e){return e.nextStep||null;}).find(function(x){return x;})||null;
+  return {stage:stage,status:lead.status||"new",blockers:blocked?[lead.blocker]:[],nextAction:nextAction,owner:owner?owner.name:null,isActionable:isActionable,isHot:isHot,activeSeqContacts:activeSeqContacts};
+}
 function calcDynamicScore(lead,icp,weights){
   var now=Date.now(),DAY=86400000,base=lead.totalScore||calcScore(lead.scores||{},weights||{});
   var logs=(lead.logEntries||[]).map(function(e){return new Date(e.timestamp).getTime();}).filter(function(t){return t>0;});
