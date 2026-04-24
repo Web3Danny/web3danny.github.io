@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8"/>
@@ -8,7 +8,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="constants.js"></script>
+<script src="services_supabase.js"></script>
 <script src="services.js"></script>
 <script src="comp_core.js"></script>
 <script src="comp_panels.js"></script>
@@ -24,128 +26,143 @@
 <body>
 
 <div id="pw-gate" style="position:fixed;top:0;left:0;right:0;bottom:0;background:#0F0F0F;z-index:9999;display:flex;align-items:center;justify-content:center;font-family:'Barlow',system-ui,sans-serif">
-  <div style="text-align:center;max-width:320px;padding:24px">
+  <div style="text-align:center;max-width:320px;padding:24px;width:100%">
     <div style="font-size:24px;font-weight:700;color:#F0F0F0;letter-spacing:2px;margin-bottom:8px;font-family:'Barlow Condensed',sans-serif">PCRM</div>
-    <div style="font-size:12px;color:#888;margin-bottom:24px">Enter password to continue</div>
-    <input id="pw-input" type="password" placeholder="Password..." style="width:100%;padding:10px 14px;background:#1A1A1A;border:1px solid #333;border-radius:5px;color:#F0F0F0;font-size:14px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:12px" autofocus/>
-    <button id="pw-btn" style="width:100%;padding:10px;background:#E8E8E8;border:none;border-radius:5px;color:#0F0F0F;font-size:13px;font-weight:700;font-family:'Barlow Condensed',sans-serif;letter-spacing:0.8px;cursor:pointer;text-transform:uppercase">Enter</button>
-    <div id="pw-err" style="color:#FF6B6B;font-size:11px;margin-top:10px;display:none">Incorrect password</div>
-    <div style="font-size:9px;color:#555;margin-top:20px">Change password in Settings after login</div>
+    <div id="pw-subtitle" style="font-size:12px;color:#888;margin-bottom:24px">Sign in to continue</div>
+    <input id="pw-email" type="email" placeholder="Email..." autocomplete="off" style="width:100%;padding:10px 14px;background:#1A1A1A;border:1px solid #333;border-radius:5px;color:#F0F0F0;font-size:14px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:10px;box-sizing:border-box"/>
+    <input id="pw-input" type="password" placeholder="Password..." autocomplete="off" style="width:100%;padding:10px 14px;background:#1A1A1A;border:1px solid #333;border-radius:5px;color:#F0F0F0;font-size:14px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:12px;box-sizing:border-box"/>
+    <button id="pw-btn" style="width:100%;padding:10px;background:#E8E8E8;border:none;border-radius:5px;color:#0F0F0F;font-size:13px;font-weight:700;font-family:'Barlow Condensed',sans-serif;letter-spacing:0.8px;cursor:pointer;text-transform:uppercase">Sign In</button>
+    <div id="pw-err" style="color:#FF6B6B;font-size:11px;margin-top:10px;display:none"></div>
+    <div id="pw-ok" style="color:#0BE881;font-size:11px;margin-top:10px;display:none"></div>
+    <button id="pw-forgot" style="background:none;border:none;color:#555;font-size:11px;margin-top:14px;cursor:pointer;font-family:'Barlow',sans-serif">Forgot password?</button>
+    <div id="pw-fallback-hint" style="font-size:9px;color:#333;margin-top:16px;display:none">Using local password (Supabase not configured)</div>
   </div>
 </div>
 <script>
 (function(){
-  var HASH="8f6360fafdc48eb199caf501f237dcf2e4e1d01a6ff4b64db222645617814a97";
-  var stored=localStorage.getItem("pcrm_pw_hash");
-  if(stored&&stored===HASH){document.getElementById("pw-gate").style.display="none";}
-  else{
-    var custom=localStorage.getItem("pcrm_custom_pw");
-    if(custom){HASH=custom;}
-    if(localStorage.getItem("pcrm_auth")==="1"&&Date.now()-parseInt(localStorage.getItem("pcrm_auth_time")||"0")<86400000){
-      document.getElementById("pw-gate").style.display="none";
-    }
-  }
-  async function sha256(msg){var buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(msg));return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,"0");}).join("");}
-  async function check(){
-    var inp=document.getElementById("pw-input").value;
-    var hash=await sha256(inp);
-    var customHash=localStorage.getItem("pcrm_custom_pw");
-    if(hash===HASH||hash===customHash){
-      document.getElementById("pw-gate").style.display="none";
-      localStorage.setItem("pcrm_auth","1");
-      localStorage.setItem("pcrm_auth_time",String(Date.now()));
-    }else{document.getElementById("pw-err").style.display="block";}
-  }
-  document.getElementById("pw-btn").onclick=check;
-  document.getElementById("pw-input").onkeydown=function(e){if(e.key==="Enter")check();};
+  /* ── Auth gate (STEP 28C) ─────────────────────────────────────────────── */
+  /* Uses Supabase Auth when configured. Falls back to legacy local password  */
+  /* when SUPABASE_URL is still the placeholder value.                        */
 
-  /* Biometric auth (Face ID / Touch ID / Fingerprint) */
-  var bioAvail=window.PublicKeyCredential&&window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable;
-  if(bioAvail){
-    bioAvail.call(window.PublicKeyCredential).then(function(avail){
-      if(!avail)return;
-      var bioReg=localStorage.getItem("pcrm_bio_registered");
-      if(bioReg==="1"){
-        /* Auto-trigger biometric on load */
-        document.getElementById("pw-err").style.display="none";
-        tryBiometric();
-      }
-    });
+  var LEGACY_HASH="8f6360fafdc48eb199caf501f237dcf2e4e1d01a6ff4b64db222645617814a97";
+
+  function showErr(msg){
+    var e=document.getElementById("pw-err");
+    e.textContent=msg;e.style.display="block";
+    document.getElementById("pw-ok").style.display="none";
   }
-  async function tryBiometric(){
-    try{
-      var challenge=new Uint8Array(32);crypto.getRandomValues(challenge);
-      var credId=localStorage.getItem("pcrm_bio_cred");
-      if(!credId)return;
-      var idBytes=Uint8Array.from(atob(credId),function(c){return c.charCodeAt(0);});
-      var assertion=await navigator.credentials.get({publicKey:{
-        challenge:challenge,
-        rpId:location.hostname,
-        allowCredentials:[{id:idBytes,type:"public-key",transports:["internal"]}],
-        userVerification:"required",
-        timeout:60000
-      }});
-      if(assertion){
-        document.getElementById("pw-gate").style.display="none";
+  function showOk(msg){
+    var o=document.getElementById("pw-ok");
+    o.textContent=msg;o.style.display="block";
+    document.getElementById("pw-err").style.display="none";
+  }
+  function hideGate(){
+    document.getElementById("pw-gate").style.display="none";
+  }
+  function setBtnLoading(loading){
+    var btn=document.getElementById("pw-btn");
+    btn.disabled=loading;btn.textContent=loading?"...":"Sign In";
+  }
+
+  var supaConfigured=!!(window.supabaseClient);
+
+  if(!supaConfigured){
+    /* ── Legacy local-password mode ─────────────────────────────────────── */
+    document.getElementById("pw-subtitle").textContent="Enter password to continue";
+    document.getElementById("pw-email").style.display="none";
+    document.getElementById("pw-btn").textContent="Enter";
+    document.getElementById("pw-forgot").style.display="none";
+    document.getElementById("pw-fallback-hint").style.display="block";
+
+    var custom=localStorage.getItem("pcrm_custom_pw");
+    var HASH=custom||LEGACY_HASH;
+    if(localStorage.getItem("pcrm_auth")==="1"&&Date.now()-parseInt(localStorage.getItem("pcrm_auth_time")||"0")<86400000){
+      hideGate();
+    }
+
+    async function sha256(msg){var buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(msg));return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,"0");}).join("");}
+    async function legacyCheck(){
+      var inp=document.getElementById("pw-input").value;
+      var hash=await sha256(inp);
+      if(hash===HASH){
+        hideGate();
         localStorage.setItem("pcrm_auth","1");
         localStorage.setItem("pcrm_auth_time",String(Date.now()));
-      }
-    }catch(e){console.log("Bio auth cancelled or failed:",e.message);}
+      }else{showErr("Incorrect password");}
+    }
+    document.getElementById("pw-btn").onclick=legacyCheck;
+    document.getElementById("pw-input").onkeydown=function(e){if(e.key==="Enter")legacyCheck();};
+    return;
   }
-  /* Add biometric button if supported */
-  if(bioAvail){
-    bioAvail.call(window.PublicKeyCredential).then(function(avail){
-      if(!avail)return;
-      var bioBtn=document.createElement("button");
-      bioBtn.id="bio-btn";
-      bioBtn.innerHTML=localStorage.getItem("pcrm_bio_registered")==="1"?"&#128275; Use Face ID / Fingerprint":"&#128275; Set up biometric after login";
-      bioBtn.style.cssText="width:100%;padding:10px;background:transparent;border:1px solid #333;border-radius:5px;color:#FECA57;font-size:12px;font-weight:700;font-family:\'Barlow Condensed\',sans-serif;letter-spacing:0.8px;cursor:pointer;margin-top:8px";
-      if(localStorage.getItem("pcrm_bio_registered")==="1"){bioBtn.onclick=tryBiometric;}
-      else{bioBtn.onclick=function(){document.getElementById("pw-err").textContent="Enter password first, then biometric will be set up";document.getElementById("pw-err").style.display="block";document.getElementById("pw-err").style.color="#FECA57";};}
-      document.getElementById("pw-btn").parentNode.insertBefore(bioBtn,document.getElementById("pw-btn").nextSibling);
-    });
-  }
-  /* After successful password login, offer to register biometric */
-  var origCheck=check;
-  check=async function(){
-    var inp=document.getElementById("pw-input").value;
-    var hash=await sha256(inp);
-    var customHash=localStorage.getItem("pcrm_custom_pw");
-    var HASH2="8f6360fafdc48eb199caf501f237dcf2e4e1d01a6ff4b64db222645617814a97";
-    if(hash===HASH2||hash===customHash){
-      /* Password correct — register biometric if available and not yet registered */
-      document.getElementById("pw-gate").style.display="none";
+
+  /* ── Supabase Auth mode ──────────────────────────────────────────────── */
+  window.supabaseClient.auth.getSession().then(function(res){
+    var session=res&&res.data&&res.data.session;
+    if(session){
+      hideGate();
+      if(window.pcrmSupabase){window.pcrmSupabase.migrateFromLocalStorage().catch(function(){});}
+    }
+  }).catch(function(){});
+
+  window.supabaseClient.auth.onAuthStateChange(function(event,session){
+    if(event==="SIGNED_IN"&&session){
+      hideGate();
+      if(window.pcrmSupabase){window.pcrmSupabase.migrateFromLocalStorage().catch(function(){});}
+    }
+    if(event==="SIGNED_OUT"){
+      document.getElementById("pw-gate").style.display="flex";
+    }
+    if(event==="PASSWORD_RECOVERY"){
+      document.getElementById("pw-subtitle").textContent="Set a new password";
+      document.getElementById("pw-email").style.display="none";
+      document.getElementById("pw-input").placeholder="New password...";
+      document.getElementById("pw-btn").textContent="Update Password";
+      document.getElementById("pw-forgot").style.display="none";
+      document.getElementById("pw-btn").onclick=async function(){
+        var newPw=document.getElementById("pw-input").value;
+        if(!newPw||newPw.length<6){showErr("Password must be at least 6 characters");return;}
+        setBtnLoading(true);
+        var res=await window.supabaseClient.auth.updateUser({password:newPw});
+        setBtnLoading(false);
+        if(res.error){showErr(res.error.message);}
+        else{showOk("Password updated — signing you in...");setTimeout(hideGate,1500);}
+      };
+    }
+  });
+
+  async function supabaseSignIn(){
+    var email=document.getElementById("pw-email").value.trim();
+    var password=document.getElementById("pw-input").value;
+    if(!email){showErr("Enter your email address");return;}
+    if(!password){showErr("Enter your password");return;}
+    setBtnLoading(true);
+    var res=await window.supabaseClient.auth.signInWithPassword({email:email,password:password});
+    setBtnLoading(false);
+    if(res.error){
+      showErr(res.error.message==="Invalid login credentials"?"Incorrect email or password":res.error.message);
+    }else{
+      hideGate();
       localStorage.setItem("pcrm_auth","1");
       localStorage.setItem("pcrm_auth_time",String(Date.now()));
-      if(bioAvail&&localStorage.getItem("pcrm_bio_registered")!=="1"){
-        bioAvail.call(window.PublicKeyCredential).then(function(avail){
-          if(!avail)return;
-          if(confirm("Enable Face ID / Fingerprint for future logins?")){registerBiometric();}
-        });
-      }
-    }else{document.getElementById("pw-err").style.display="block";document.getElementById("pw-err").style.color="#FF6B6B";document.getElementById("pw-err").textContent="Incorrect password";}
-  };
-  async function registerBiometric(){
-    try{
-      var challenge=new Uint8Array(32);crypto.getRandomValues(challenge);
-      var userId=new Uint8Array(16);crypto.getRandomValues(userId);
-      var cred=await navigator.credentials.create({publicKey:{
-        challenge:challenge,
-        rp:{name:"PCRM",id:location.hostname},
-        user:{id:userId,name:"pcrm-user",displayName:"PCRM User"},
-        pubKeyCredParams:[{alg:-7,type:"public-key"},{alg:-257,type:"public-key"}],
-        authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required",residentKey:"preferred"},
-        timeout:60000
-      }});
-      if(cred){
-        var credId=btoa(String.fromCharCode.apply(null,new Uint8Array(cred.rawId)));
-        localStorage.setItem("pcrm_bio_cred",credId);
-        localStorage.setItem("pcrm_bio_registered","1");
-      }
-    }catch(e){console.log("Bio registration failed:",e.message);}
+      if(window.pcrmSupabase){window.pcrmSupabase.migrateFromLocalStorage().catch(function(){});}
+    }
   }
-  document.getElementById("pw-btn").onclick=check;
-  document.getElementById("pw-input").onkeydown=function(e){if(e.key==="Enter")check();};
+
+  document.getElementById("pw-btn").onclick=supabaseSignIn;
+  document.getElementById("pw-input").onkeydown=function(e){if(e.key==="Enter")supabaseSignIn();};
+  document.getElementById("pw-email").onkeydown=function(e){if(e.key==="Enter")document.getElementById("pw-input").focus();};
+
+  document.getElementById("pw-forgot").onclick=async function(){
+    var email=document.getElementById("pw-email").value.trim();
+    if(!email){showErr("Enter your email address first");return;}
+    setBtnLoading(true);
+    var res=await window.supabaseClient.auth.resetPasswordForEmail(email,{
+      redirectTo:window.location.origin+window.location.pathname
+    });
+    setBtnLoading(false);
+    if(res.error){showErr(res.error.message);}
+    else{showOk("Password reset email sent — check your inbox");}
+  };
 })();
 </script>
 <div id="root"></div>

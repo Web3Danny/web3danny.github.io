@@ -1,5 +1,17 @@
 /* ── VERSION ─────────────────────────────────────────────────────────────────── */
-const VERSION = '04.23.26p';
+const VERSION = '04.24.26a';
+
+/* ── SUPABASE CONFIG ─────────────────────────────────────────────────────────── */
+/* Replace these placeholder values with your actual Supabase project credentials */
+/* Go to supabase.com > your project > Settings > API to find these values       */
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+/* Initialize Supabase client — available globally as window.supabaseClient      */
+(function(){
+  if (window.supabase && SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
+    window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+})();
 
 /* ── AI MODEL ───────────────────────────────────────────────────────────────── */
 const GROQ_LLAMA = "llama-3.3-70b-versatile";

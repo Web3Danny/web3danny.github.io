@@ -1,6 +1,6 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const { readLeads, writeLeads } = require('../dataStore');
+const { readLeads, writeLeads, syncLeadToSupabase } = require('../dataStore');
 const { enqueue } = require('../updateQueue');
 
 const router = express.Router();
@@ -133,6 +133,9 @@ router.post('/:id/signals', async (req, res) => {
       writeLeads(leads);
       return leads[idx];
     });
+    /* STEP 28D — sync signal update to Supabase (fire and forget) */
+    const userId = req.headers['x-pcrm-user-id'];
+    syncLeadToSupabase(req.params.id, userId, result).catch(() => {});
     res.json({ success: true, data: result });
   } catch (err) {
     const status = err.statusCode || 500;
@@ -162,6 +165,9 @@ router.post('/:id/enrich', async (req, res) => {
       writeLeads(leads);
       return leads[idx];
     });
+    /* STEP 28D — sync enrichment to Supabase (fire and forget) */
+    const userId = req.headers['x-pcrm-user-id'];
+    syncLeadToSupabase(req.params.id, userId, result).catch(() => {});
     res.json({ success: true, data: result });
   } catch (err) {
     const status = err.statusCode || 500;
