@@ -4,6 +4,7 @@ const leadsRouter = require('./routes/leads');
 const campaignsRouter = require('./routes/campaigns');
 const healthRouter = require('./routes/health');
 const hunterRouter = require('./routes/hunter');
+const trackingRouter = require('./routes/tracking');
 
 const app = express();
 const PORT = 3000;
@@ -15,6 +16,9 @@ if (!API_SECRET) {
 }
 
 app.use(express.json());
+
+// Public tracking pixel — no auth required
+app.use('/track', trackingRouter);
 
 app.use(function requireApiKey(req, res, next) {
   const key = req.headers['x-pcrm-key'];
