@@ -426,6 +426,93 @@ function extractDomain(text){
   return null;
 }
 
+/* ── STEP 20C2: ENRICHMENT USAGE TRACKING ────────────────────────────────────── */
+var ENRICH_LIMITS={apollo:{contacts:50,exports_today:5},hunter:{searches:25},clay:{credits:100}};
+function getEnrichmentUsage(){
+  var now=new Date();
+  var month=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+  var today=now.toISOString().slice(0,10);
+  try{
+    var raw=localStorage.getItem("pcrm_v9_enrichment_usage");
+    var u=raw?JSON.parse(raw):null;
+    if(!u||u.month!==month){
+      u={month:month,apollo:{contacts:0,exports_today:0,export_date:today},hunter:{searches:0},clay:{credits:0}};
+    } else if(u.apollo.export_date!==today){
+      u.apollo.exports_today=0;u.apollo.export_date=today;
+    }
+    return u;
+  }catch(e){return{month:month,apollo:{contacts:0,exports_today:0,export_date:today},hunter:{searches:0},clay:{credits:0}};}
+}
+function saveEnrichmentUsage(u){try{localStorage.setItem("pcrm_v9_enrichment_usage",JSON.stringify(u));}catch(e){}}
+function incrementEnrichUsage(provider,field){
+  var u=getEnrichmentUsage();
+  if(u[provider]&&field in u[provider]){u[provider][field]=(u[provider][field]||0)+1;saveEnrichmentUsage(u);}
+}
+function isEnrichLimitReached(provider){
+  var u=getEnrichmentUsage();
+  if(provider==="apollo")return u.apollo.contacts>=(ENRICH_LIMITS.apollo.contacts);
+  if(provider==="hunter")return u.hunter.searches>=(ENRICH_LIMITS.hunter.searches);
+  if(provider==="clay")return u.clay.credits>=(ENRICH_LIMITS.clay.credits);
+  return false;
+}
+
+/* ── STEP 20C2: CLAY ENRICHMENT ───────────────────────────────────────────────── */
+async function enrichViaClay(domain,firstName,lastName){
+  var clayKey=localStorage.getItem("pcrm_v9_clay_key")||"";
+  if(!clayKey||isEnrichLimitReached("clay"))return null;
+  try{
+    var body={domain:domain};
+    if(firstName)body.first_name=firstName;
+    if(lastName)body.last_name=lastName;
+    var resp=await fetch("https://api.clay.com/v1/sources/people-search",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+clayKey},
+      body:JSON.stringify(body)
+    });
+    if(!resp.ok)return null;
+    var data=await resp.json();
+    incrementEnrichUsage("clay","credits");
+    var person=(data.data&&data.data[0])||data;
+    if(!person||(!person.email&&!person.first_name))return null;
+    return{email:person.email||null,name:(person.first_name&&person.last_name)?person.first_name+" "+person.last_name:(person.first_name||person.last_name||null),title:person.title||null,source:"clay"};
+  }catch(e){return null;}
+}
+
+/* ── STEP 20C2: ENRICHMENT WATERFALL ─────────────────────────────────────────── */
+/* Waterfall: Apollo → Clay (company data); Apollo → Hunter → Clay (email) */
+async function enrichWaterfall(domain,firstName,lastName,backendKey){
+  var result={email:null,name:null,title:null,source:null,companyData:null,companySource:null};
+  /* Company data: Apollo first, Clay second */
+  var apolloKey=localStorage.getItem("pcrm_v9_apollo_key")||"";
+  var apolloOk=apolloKey&&!isEnrichLimitReached("apollo");
+  if(apolloOk){
+    try{
+      var aResp=await fetch("http://178.104.168.218:3000/apollo-search",{method:"POST",headers:{"Content-Type":"application/json","x-pcrm-key":backendKey||""},body:JSON.stringify({domain:domain,firstName:firstName,lastName:lastName})});
+      if(aResp.ok){var aData=await aResp.json();if(aData.success&&aData.data){incrementEnrichUsage("apollo","contacts");result.companyData=aData.data;result.companySource="apollo";if(aData.data.email){result.email=aData.data.email;result.name=aData.data.name||null;result.title=aData.data.title||null;result.source="apollo";}}}
+    }catch(e){}
+  }
+  if(!result.companyData){
+    var clayCompany=await enrichViaClay(domain,firstName,lastName);
+    if(clayCompany){result.companyData=clayCompany;result.companySource="clay";if(clayCompany.email&&!result.email){result.email=clayCompany.email;result.name=clayCompany.name||null;result.title=clayCompany.title||null;result.source="clay";}}
+  }
+  /* Email: Apollo already checked → Hunter second → Clay third */
+  if(!result.email){
+    var hKey=localStorage.getItem("pcrm_v9_hunter_key")||"";
+    var hunterOk=hKey&&!isEnrichLimitReached("hunter");
+    if(hunterOk){
+      try{
+        var hResp=await fetch("http://178.104.168.218:3000/hunter",{method:"POST",headers:{"Content-Type":"application/json","x-pcrm-key":backendKey||""},body:JSON.stringify({type:"email-finder",domain:domain,firstName:firstName,lastName:lastName,hunterApiKey:hKey})});
+        if(hResp.ok){var hData=await hResp.json();if(hData.success&&hData.email){incrementEnrichUsage("hunter","searches");result.email=hData.email;result.source="hunter";}}
+      }catch(e){}
+    }
+    if(!result.email){
+      var clayEmail=await enrichViaClay(domain,firstName,lastName);
+      if(clayEmail&&clayEmail.email){result.email=clayEmail.email;result.name=result.name||clayEmail.name||null;result.title=result.title||clayEmail.title||null;result.source="clay";}
+    }
+  }
+  return result;
+}
+
 function triggerUrlDropEnrichment(leadId,domain){
   var webhookUrl=null;
   try{
