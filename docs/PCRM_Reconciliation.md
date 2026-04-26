@@ -2353,6 +2353,65 @@ Show verification status on each contact email:
 
 ---
 
+SEND TO CLAUDE CODE — STEP 20C2 (Clay Integration and Enrichment Waterfall)
+
+Add Clay.com to the integrations hub alongside Apollo and
+Hunter.io as the third provider in the enrichment stack.
+
+Clay endpoint: https://api.clay.com/v1
+Store key in pcrm_v9_clay_key.
+
+Enrichment waterfall logic:
+
+  Company data:
+    1. Apollo first
+    2. Clay second if Apollo returns nothing
+
+  Email addresses:
+    1. Apollo first
+    2. Hunter.io second if Apollo has no verified email
+    3. Clay third if both Apollo and Hunter fail
+
+  Email verification:
+    1. Hunter.io first
+    2. Clay second if Hunter monthly limit reached
+
+Monthly usage tracking:
+
+  Track usage in localStorage under pcrm_v9_enrichment_usage
+  with the following shape:
+    {
+      month: "YYYY-MM",
+      apollo:  { contacts: 0, exports_today: 0, export_date: "YYYY-MM-DD" },
+      hunter:  { searches: 0 },
+      clay:    { credits: 0 }
+    }
+
+  Free tier limits:
+    - apollo: 50 contacts per month, 5 exports per day
+    - hunter: 25 searches per month
+    - clay:   100 credits per month
+
+  Reset counts when the stored month value differs from the
+  current month. Reset apollo.exports_today when export_date
+  differs from today.
+
+Limit handling:
+  - When a provider's limit is reached, skip that provider
+    in the waterfall and continue with the next one.
+  - Show a warning badge on the provider card in the
+    integrations hub when its limit is reached.
+  - Show usage meters as progress bars in Settings for each
+    provider (current / limit), colour-coded:
+      green   < 70%
+      yellow  70%–95%
+      red     ≥ 95% or limit reached.
+
+Do not change Apollo or Hunter.io behaviour beyond inserting
+Clay into the waterfall and wiring the usage counters.
+
+---
+
 SEND TO CLAUDE CODE — STEP 20D (Intent-Based Timing)
 
 Wire the existing signals array to trigger campaign
