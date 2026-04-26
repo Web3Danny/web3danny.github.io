@@ -60,6 +60,12 @@ Never delete, rename, or change shape.
 2. **No regressions**: After any change, all tabs and features from previous sessions must still work. Test the golden path before reporting done.
 3. **Size discipline**: Always check combined Babel input sizes after edits. Do not let either pass exceed its headroom.
 
+## Permanent Non-Negotiable Constraints (Board-Mandated)
+
+**Rule 1 — Additive only, never destructive:** When adding any new feature, button, tab, field, or section, the CTO must never remove, rename, move, or modify any existing UI element that was not explicitly mentioned in the task. If a task says "add a label button" only a label button is added — nothing else changes. Before closing any task the CTO must confirm every existing element is still present and unchanged.
+
+**Rule 2 — Design consistency:** Every new UI element must match the existing design system exactly. Same font size, same button height, same border style, same colour palette, same spacing as surrounding elements. No new design patterns, no oversized buttons, no differently styled tabs, no elements that look out of place. If unsure about the correct style, find an existing similar element in the codebase and copy its exact CSS. The QA Engineer must reject any task where new elements look visually inconsistent with the rest of the app.
+
 ## UI Redesign Regression Rule
 
 Before any UI restructure or redesign task, the CTO must take a snapshot of all existing functionality in that component and verify every single feature still works after the change. If any existing feature is missing or broken after a redesign, the task cannot be marked done regardless of what new features were added. The QA Engineer must run a regression check against the pre-change feature list. This rule applies to every task that touches existing components.
