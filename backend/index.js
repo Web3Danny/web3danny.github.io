@@ -18,6 +18,14 @@ if (!API_SECRET) {
 
 app.use(express.json());
 
+app.use(function(req, res, next) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-pcrm-key');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
 // Public tracking pixel — no auth required
 app.use('/track', trackingRouter);
 
